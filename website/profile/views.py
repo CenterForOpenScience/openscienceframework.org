@@ -67,8 +67,10 @@ def resend_confirmation(auth):
 
     validate_user(data, user)
     if not throttle_period_expired(user.email_last_sent, settings.SEND_EMAIL_THROTTLE):
-        raise HTTPError(http_status.HTTP_400_BAD_REQUEST,
-                        data={'message_long': 'Too many requests. Please wait a while before sending another confirmation email.'})
+        raise HTTPError(
+            http_status.HTTP_400_BAD_REQUEST,
+            data={'message_long': 'Too many requests. Please wait a while before sending another confirmation email.'},
+        )
 
     try:
         primary = data['email']['primary']
@@ -147,8 +149,10 @@ def update_user(auth):
             try:
                 user.add_unconfirmed_email(address)
             except (ValidationError, ValueError):
-                raise HTTPError(http_status.HTTP_400_BAD_REQUEST, data=dict(
-                    message_long='Invalid Email')
+                raise HTTPError(
+                    http_status.HTTP_400_BAD_REQUEST, data=dict(
+                        message_long='Invalid Email',
+                    ),
                 )
             except BlacklistedEmailError:
                 sentry.log_message(
@@ -156,17 +160,21 @@ def update_user(auth):
                     extra_data={
                         'user_id': user.id,
                         'address': address,
-                    }
+                    },
                 )
-                raise HTTPError(http_status.HTTP_400_BAD_REQUEST, data=dict(
-                    message_long=language.BLACKLISTED_EMAIL)
+                raise HTTPError(
+                    http_status.HTTP_400_BAD_REQUEST, data=dict(
+                        message_long=language.BLACKLISTED_EMAIL,
+                    ),
                 )
 
             # TODO: This setting is now named incorrectly.
             if settings.CONFIRM_REGISTRATIONS_BY_EMAIL:
                 if not throttle_period_expired(user.email_last_sent, settings.SEND_EMAIL_THROTTLE):
-                    raise HTTPError(http_status.HTTP_400_BAD_REQUEST,
-                                    data={'message_long': 'Too many requests. Please wait a while before adding an email to your account.'})
+                    raise HTTPError(
+                        http_status.HTTP_400_BAD_REQUEST,
+                        data={'message_long': 'Too many requests. Please wait a while before adding an email to your account.'},
+                    )
                 send_confirm_email(user, email=address)
 
         ############
@@ -199,7 +207,7 @@ def update_user(auth):
                 user=user,
                 new_address=username,
                 can_change_preferences=False,
-                osf_contact_email=settings.OSF_CONTACT_EMAIL
+                osf_contact_email=settings.OSF_CONTACT_EMAIL,
             )
 
             # Remove old primary email from subscribed mailing lists
@@ -247,7 +255,7 @@ def _profile_view(profile, is_profile=False, include_node_counts=False):
                 'is_profile': is_profile,
                 'can_edit': None,  # necessary for rendering nodes
                 'permissions': [],  # necessary for rendering nodes
-                'has_quickfiles': profile_quickfilesnode.files.filter(type='osf.osfstoragefile').exists()
+                'has_quickfiles': profile_quickfilesnode.files.filter(type='osf.osfstoragefile').exists(),
             },
         }
         return ret
@@ -327,7 +335,7 @@ def user_account_password(auth, **kwargs):
         push_status_message(
             message='Too many failed attempts. Please wait a while before attempting to change your password.',
             kind='warning',
-            trust=False
+            trust=False,
         )
         return redirect(web_url_for('user_account'))
 
@@ -363,7 +371,7 @@ def user_addons(auth, **kwargs):
         'addon_enabled_settings': [addon.short_name for addon in accounts_addons],
         'addons_js': collect_user_config_js(accounts_addons),
         'addon_capabilities': settings.ADDON_CAPABILITIES,
-        'addons_css': []
+        'addons_css': [],
     })
     return ret
 
@@ -372,7 +380,7 @@ def user_addons(auth, **kwargs):
 def user_notifications(auth, **kwargs):
     """Get subscribe data from user"""
     return {
-        'mailing_lists': dict(auth.user.mailchimp_mailing_lists.items() + auth.user.osf_mailing_lists.items())
+        'mailing_lists': dict(auth.user.mailchimp_mailing_lists.items() + auth.user.osf_mailing_lists.items()),
     }
 
 @must_be_logged_in
@@ -381,7 +389,7 @@ def oauth_application_list(auth, **kwargs):
     """Return app creation page with list of known apps. API is responsible for tying list to current user."""
     app_list_url = api_v2_url('applications/')
     return {
-        'app_list_url': app_list_url
+        'app_list_url': app_list_url,
     }
 
 @must_be_logged_in
@@ -389,8 +397,10 @@ def oauth_application_list(auth, **kwargs):
 def oauth_application_register(auth, **kwargs):
     """Register an API application: blank form view"""
     app_list_url = api_v2_url('applications/')  # POST request to this url
-    return {'app_list_url': app_list_url,
-            'app_detail_url': ''}
+    return {
+        'app_list_url': app_list_url,
+        'app_detail_url': '',
+    }
 
 @must_be_logged_in
 @ember_flag_is_active(features.EMBER_USER_SETTINGS_APPS)
@@ -411,8 +421,10 @@ def oauth_application_detail(auth, **kwargs):
         raise HTTPError(http_status.HTTP_410_GONE)
 
     app_detail_url = api_v2_url('applications/{}/'.format(client_id))  # Send request to this URL
-    return {'app_list_url': '',
-            'app_detail_url': app_detail_url}
+    return {
+        'app_list_url': '',
+        'app_detail_url': app_detail_url,
+    }
 
 @must_be_logged_in
 @ember_flag_is_active(features.EMBER_USER_SETTINGS_TOKENS)
@@ -420,7 +432,7 @@ def personal_access_token_list(auth, **kwargs):
     """Return token creation page with list of known tokens. API is responsible for tying list to current user."""
     token_list_url = api_v2_url('tokens/')
     return {
-        'token_list_url': token_list_url
+        'token_list_url': token_list_url,
     }
 
 @must_be_logged_in
@@ -428,9 +440,11 @@ def personal_access_token_list(auth, **kwargs):
 def personal_access_token_register(auth, **kwargs):
     """Register a personal access token: blank form view"""
     token_list_url = api_v2_url('tokens/')  # POST request to this url
-    return {'token_list_url': token_list_url,
-            'token_detail_url': '',
-            'scope_options': get_available_scopes()}
+    return {
+        'token_list_url': token_list_url,
+        'token_detail_url': '',
+        'scope_options': get_available_scopes(),
+    }
 
 @must_be_logged_in
 @ember_flag_is_active(features.EMBER_USER_SETTINGS_TOKENS)
@@ -449,9 +463,11 @@ def personal_access_token_detail(auth, **kwargs):
         raise HTTPError(http_status.HTTP_410_GONE)
 
     token_detail_url = api_v2_url('tokens/{}/'.format(_id))  # Send request to this URL
-    return {'token_list_url': '',
-            'token_detail_url': token_detail_url,
-            'scope_options': get_available_scopes()}
+    return {
+        'token_list_url': '',
+        'token_detail_url': token_detail_url,
+        'scope_options': get_available_scopes(),
+    }
 
 @must_be_logged_in
 def delete_external_identity(auth, **kwargs):
@@ -512,8 +528,10 @@ def user_choose_mailing_lists(auth, **kwargs):
             else:
                 update_mailchimp_subscription(user, list_name, subscribe)
     else:
-        raise HTTPError(http_status.HTTP_400_BAD_REQUEST, data=dict(
-            message_long="Must provide a dictionary of the format {'mailing list name': Boolean}")
+        raise HTTPError(
+            http_status.HTTP_400_BAD_REQUEST, data=dict(
+                message_long="Must provide a dictionary of the format {'mailing list name': Boolean}",
+            ),
         )
 
     user.save()
@@ -564,8 +582,12 @@ def sync_data_from_mailchimp(**kwargs):
         except OSFUser.DoesNotExist:
             sentry.log_exception()
             sentry.log_message('A user with this username does not exist.')
-            raise HTTPError(404, data=dict(message_short='User not found',
-                                        message_long='A user with this username does not exist'))
+            raise HTTPError(
+                404, data=dict(
+                    message_short='User not found',
+                    message_long='A user with this username does not exist',
+                ),
+            )
         if action == 'unsubscribe':
             user.mailchimp_mailing_lists[list_name] = False
             user.save()
@@ -617,7 +639,7 @@ def fmt_date_or_none(date, fmt='%Y-%m-%d'):
         except ValueError:
             raise HTTPError(
                 http_status.HTTP_400_BAD_REQUEST,
-                data=dict(message_long='Year entered must be after 1900')
+                data=dict(message_long='Year entered must be after 1900'),
             )
     return None
 
@@ -678,7 +700,7 @@ def serialize_contents(field, func, auth, uid=None):
         'contents': [
             func(content)
             for content in getattr(target, field)
-        ]
+        ],
     }
     append_editable(ret, auth, uid)
     return ret
@@ -731,9 +753,11 @@ def unserialize_social(auth, **kwargs):
     try:
         user.save()
     except ValidationError as exc:
-        raise HTTPError(http_status.HTTP_400_BAD_REQUEST, data=dict(
-            message_long=exc.messages[0]
-        ))
+        raise HTTPError(
+            http_status.HTTP_400_BAD_REQUEST, data=dict(
+                message_long=exc.messages[0],
+            ),
+        )
 
 
 def unserialize_job(job):
@@ -772,7 +796,7 @@ def unserialize_contents(field, func, auth):
     setattr(
         user,
         field,
-        contents
+        contents,
     )
     user.save()
 
@@ -799,9 +823,13 @@ def unserialize_schools(auth, **kwargs):
 def request_export(auth):
     user = auth.user
     if not throttle_period_expired(user.email_last_sent, settings.SEND_EMAIL_THROTTLE):
-        raise HTTPError(http_status.HTTP_400_BAD_REQUEST,
-                        data={'message_long': 'Too many requests. Please wait a while before sending another account export request.',
-                              'error_type': 'throttle_error'})
+        raise HTTPError(
+            http_status.HTTP_400_BAD_REQUEST,
+            data={
+                'message_long': 'Too many requests. Please wait a while before sending another account export request.',
+                'error_type': 'throttle_error',
+            },
+        )
 
     mails.send_mail(
         to_addr=settings.OSF_SUPPORT_EMAIL,
