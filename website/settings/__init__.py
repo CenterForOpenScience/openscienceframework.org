@@ -11,9 +11,11 @@ from .defaults import *  # noqa
 
 try:
     from .local import *  # noqa
-except ImportError:
-    raise ImportError('No local.py settings file found. Did you remember to '
-                        'copy local-dist.py to local.py?')
+except ImportError as error:
+    raise ImportError(
+        'No local.py settings file found. Did you remember to '
+        'copy local-dist.py to local.py?',
+    )
 
 # apply environment variables
 globals().update(os.environ)

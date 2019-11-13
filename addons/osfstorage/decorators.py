@@ -41,7 +41,7 @@ def load_guid_as_target(func):
                 data={
                     'message_short': 'Guid not resolved',
                     'message_long': 'No object with that guid could be found',
-                }
+                },
             )
         kwargs['target'] = target
         return func(*args, **kwargs)

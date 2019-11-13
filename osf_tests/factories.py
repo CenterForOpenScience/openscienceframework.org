@@ -53,8 +53,10 @@ class UserFactory(DjangoModelFactory):
     fullname = factory.Sequence(lambda n: 'Freddie Mercury{0}'.format(n))
 
     username = factory.LazyFunction(fake_email)
-    password = factory.PostGenerationMethodCall('set_password',
-                                                'queenfan86')
+    password = factory.PostGenerationMethodCall(
+        'set_password',
+        'queenfan86',
+    )
     is_registered = True
     date_confirmed = factory.Faker('date_time_this_decade', tzinfo=pytz.utc)
     merged_by = None
@@ -161,7 +163,7 @@ class UnconfirmedUserFactory(DjangoModelFactory):
     def _build(cls, target_class, username, password, fullname):
         """Build an object without saving it."""
         instance = target_class.create_unconfirmed(
-            username=username, password=password, fullname=fullname
+            username=username, password=password, fullname=fullname,
         )
         instance.date_registered = fake.date_time(tzinfo=pytz.utc)
         return instance
@@ -169,7 +171,7 @@ class UnconfirmedUserFactory(DjangoModelFactory):
     @classmethod
     def _create(cls, target_class, username, password, fullname):
         instance = target_class.create_unconfirmed(
-            username=username, password=password, fullname=fullname
+            username=username, password=password, fullname=fullname,
         )
         instance.date_registered = fake.date_time(tzinfo=pytz.utc)
 
@@ -256,7 +258,7 @@ class NodeLicenseRecordFactory(DjangoModelFactory):
     def _create(cls, *args, **kwargs):
         kwargs['node_license'] = kwargs.get(
             'node_license',
-            models.NodeLicense.objects.get(name='No license')
+            models.NodeLicense.objects.get(name='No license'),
         )
         return super(NodeLicenseRecordFactory, cls)._create(*args, **kwargs)
 
@@ -360,11 +362,13 @@ class RegistrationFactory(BaseNodeFactory):
         raise Exception('Cannot build registration without saving.')
 
     @classmethod
-    def _create(cls, target_class, project=None, is_public=False,
-                schema=None, data=None,
-                archive=False, embargo=None, registration_approval=None, retraction=None,
-                provider=None,
-                *args, **kwargs):
+    def _create(
+        cls, target_class, project=None, is_public=False,
+        schema=None, data=None,
+        archive=False, embargo=None, registration_approval=None, retraction=None,
+        provider=None,
+        *args, **kwargs
+    ):
         user = None
         if project:
             user = project.creator
@@ -379,7 +383,7 @@ class RegistrationFactory(BaseNodeFactory):
                 contributor=user,
                 permissions=permissions.CREATOR_PERMISSIONS,
                 log=False,
-                save=False
+                save=False,
             )
         project.save()
 
@@ -455,7 +459,7 @@ class SanctionFactory(DjangoModelFactory):
         reg_kwargs = {
             'creator': user,
             'user': user,
-            sanction.SHORT_NAME: sanction
+            sanction.SHORT_NAME: sanction,
         }
         RegistrationFactory(**reg_kwargs)
         if not approve:
@@ -672,19 +676,22 @@ class PreprintFactory(DjangoModelFactory):
             target_content_type=ContentType.objects.get_for_model(instance),
             path='/{}'.format(filename),
             name=filename,
-            materialized_path='/{}'.format(filename))
+            materialized_path='/{}'.format(filename),
+        )
 
         preprint_file.save()
         from addons.osfstorage import settings as osfstorage_settings
 
-        preprint_file.create_version(user, {
-            'object': '06d80e',
-            'service': 'cloud',
-            osfstorage_settings.WATERBUTLER_RESOURCE: 'osf',
-        }, {
-            'size': file_size,
-            'contentType': 'img/png'
-        }).save()
+        preprint_file.create_version(
+            user, {
+                'object': '06d80e',
+                'service': 'cloud',
+                osfstorage_settings.WATERBUTLER_RESOURCE: 'osf',
+            }, {
+                'size': file_size,
+                'contentType': 'img/png',
+            },
+        ).save()
         update_task_patcher.stop()
         if finish:
             auth = Auth(user)
@@ -822,7 +829,7 @@ class MockOAuth2Provider(models.ExternalProvider):
 
     def handle_callback(self, response):
         return {
-            'provider_id': 'mock_provider_id'
+            'provider_id': 'mock_provider_id',
         }
 
 
@@ -975,15 +982,15 @@ generic_waterbutler_settings = {
         'provider': 'glowcloud',
         'container': 'osf_storage',
         'use_public': True,
-    }
+    },
 }
 
 generic_waterbutler_credentials = {
     'storage': {
         'region': 'PartsUnknown',
         'username': 'mankind',
-        'token': 'heresmrsocko'
-    }
+        'token': 'heresmrsocko',
+    },
 }
 
 
@@ -1023,15 +1030,17 @@ class ChronosJournalFactory(DjangoModelFactory):
 
     @classmethod
     def _create(cls, target_class, *args, **kwargs):
-        kwargs['raw_response'] = kwargs.get('raw_response', {
-            'TITLE': kwargs.get('title', factory.Faker('text').generate([])),
-            'JOURNAL_ID': kwargs.get('title', factory.Faker('ean').generate([])),
-            'NAME': kwargs.get('name', factory.Faker('text').generate([])),
-            'JOURNAL_URL': factory.Faker('url').generate([]),
-            'PUBLISHER_ID': factory.Faker('ean').generate([]),
-            'PUBLISHER_NAME': factory.Faker('name').generate([])
-            # Other stuff too probably
-        })
+        kwargs['raw_response'] = kwargs.get(
+            'raw_response', {
+                'TITLE': kwargs.get('title', factory.Faker('text').generate([])),
+                'JOURNAL_ID': kwargs.get('title', factory.Faker('ean').generate([])),
+                'NAME': kwargs.get('name', factory.Faker('text').generate([])),
+                'JOURNAL_URL': factory.Faker('url').generate([]),
+                'PUBLISHER_ID': factory.Faker('ean').generate([]),
+                'PUBLISHER_NAME': factory.Faker('name').generate([]),
+                # Other stuff too probably
+            },
+        )
         instance = super(ChronosJournalFactory, cls)._create(target_class, *args, **kwargs)
         instance.save()
         return instance
@@ -1050,12 +1059,14 @@ class ChronosSubmissionFactory(DjangoModelFactory):
 
     @classmethod
     def _create(cls, target_class, *args, **kwargs):
-        kwargs['raw_response'] = kwargs.get('raw_response', {
-            'PUBLICATION_ID': kwargs.get('publication_id', factory.Faker('ean').generate([])),
-            'STATUS_CODE': kwargs.get('status', factory.Faker('random_int', min=1, max=5).generate([])),
-            'CHRONOS_SUBMISSION_URL': kwargs.get('submission_url', factory.Faker('url').generate([])),
-            # Other stuff too probably
-        })
+        kwargs['raw_response'] = kwargs.get(
+            'raw_response', {
+                'PUBLICATION_ID': kwargs.get('publication_id', factory.Faker('ean').generate([])),
+                'STATUS_CODE': kwargs.get('status', factory.Faker('random_int', min=1, max=5).generate([])),
+                'CHRONOS_SUBMISSION_URL': kwargs.get('submission_url', factory.Faker('url').generate([])),
+                # Other stuff too probably
+            },
+        )
         instance = super(ChronosSubmissionFactory, cls)._create(target_class, *args, **kwargs)
         instance.save()
         return instance

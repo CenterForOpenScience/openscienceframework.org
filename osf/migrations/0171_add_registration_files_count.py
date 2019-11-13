@@ -52,5 +52,5 @@ class Migration(migrations.Migration):
             name='files_count',
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
-        migrations.RunPython(add_registration_files_count, noop)
+        migrations.RunPython(add_registration_files_count, noop),
     ]

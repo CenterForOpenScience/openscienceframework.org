@@ -69,7 +69,7 @@ class NodeRemoveContributorView(PermissionRequiredMixin, DeleteView):
             params={
                 'project': node.parent_id,
                 'node': node.pk,
-                'contributors': user.pk
+                'contributors': user.pk,
             },
             date=timezone.now(),
             should_hide=True,
@@ -85,9 +85,9 @@ class NodeRemoveContributorView(PermissionRequiredMixin, DeleteView):
                     object_id=node.pk,
                     object_repr='Contributor',
                     message='User {} removed from {} {}.'.format(
-                        user.pk, node.__class__.__name__.lower(), node.pk
+                        user.pk, node.__class__.__name__.lower(), node.pk,
                     ),
-                    action_flag=CONTRIBUTOR_REMOVED
+                    action_flag=CONTRIBUTOR_REMOVED,
                 )
                 # Log invisibly on the OSF.
                 self.add_contributor_removed_log(node, user)
@@ -97,9 +97,9 @@ class NodeRemoveContributorView(PermissionRequiredMixin, DeleteView):
                 AttributeError(
                     '{} with id "{}" not found.'.format(
                         self.context_object_name.title(),
-                        self.kwargs.get('guid')
-                    )
-                )
+                        self.kwargs.get('guid'),
+                    ),
+                ),
             )
         if isinstance(node, Node):
             return redirect(reverse_node(self.kwargs.get('guid')))
@@ -114,8 +114,10 @@ class NodeRemoveContributorView(PermissionRequiredMixin, DeleteView):
         return super(NodeRemoveContributorView, self).get_context_data(**context)
 
     def get_object(self, queryset=None):
-        return (Node.load(self.kwargs.get('guid')),
-                OSFUser.load(self.kwargs.get('user_id')))
+        return (
+            Node.load(self.kwargs.get('guid')),
+            OSFUser.load(self.kwargs.get('user_id')),
+        )
 
 
 class NodeDeleteBase(DeleteView):
@@ -175,7 +177,7 @@ class NodeDeleteView(PermissionRequiredMixin, NodeDeleteBase):
                     object_id=node.pk,
                     object_repr='Node',
                     message=message,
-                    action_flag=flag
+                    action_flag=flag,
                 )
             if osf_flag is not None:
                 # Log invisibly on the OSF.
@@ -195,9 +197,9 @@ class NodeDeleteView(PermissionRequiredMixin, NodeDeleteBase):
                 AttributeError(
                     '{} with id "{}" not found.'.format(
                         self.context_object_name.title(),
-                        kwargs.get('guid')
-                    )
-                )
+                        kwargs.get('guid'),
+                    ),
+                ),
             )
         return redirect(reverse_node(self.kwargs.get('guid')))
 
@@ -242,14 +244,15 @@ class AdminNodeLogView(PermissionRequiredMixin, ListView):
         node = self.get_object()
         query = Q(node_id__in=list(Node.objects.get_children(node).values_list('id', flat=True)) + [node.id])
         return NodeLog.objects.filter(query).order_by('-date').include(
-            'node__guids', 'user__guids', 'original_node__guids', limit_includes=10
+            'node__guids', 'user__guids', 'original_node__guids', limit_includes=10,
         )
 
     def get_context_data(self, **kwargs):
         query_set = self.get_queryset()
         page_size = self.get_paginate_by(query_set)
         paginator, page, query_set, is_paginated = self.paginate_queryset(
-            query_set, page_size)
+            query_set, page_size,
+        )
         return {
             'logs': list(map(serialize_log, query_set)),
             'page': page,
@@ -276,7 +279,8 @@ class RegistrationListView(PermissionRequiredMixin, ListView):
         query_set = kwargs.pop('object_list', self.object_list)
         page_size = self.get_paginate_by(query_set)
         paginator, page, query_set, is_paginated = self.paginate_queryset(
-            query_set, page_size)
+            query_set, page_size,
+        )
         return {
             'nodes': list(map(serialize_node, query_set)),
             'page': page,
@@ -340,7 +344,8 @@ class NodeSpamList(PermissionRequiredMixin, ListView):
         query_set = kwargs.pop('object_list', self.object_list)
         page_size = self.get_paginate_by(query_set)
         paginator, page, query_set, is_paginated = self.paginate_queryset(
-            query_set, page_size)
+            query_set, page_size,
+        )
         return {
             'nodes': list(map(serialize_node, query_set)),
             'page': page,
@@ -368,7 +373,7 @@ class NodeFlaggedSpamList(NodeSpamList, DeleteView):
                     object_id=nid,
                     object_repr='Node',
                     message='Confirmed SPAM: {}'.format(nid),
-                    action_flag=CONFIRM_SPAM
+                    action_flag=CONFIRM_SPAM,
                 )
             elif ('ham_confirm' in list(request.POST.keys())):
                 node.confirm_ham(save=True)
@@ -377,7 +382,7 @@ class NodeFlaggedSpamList(NodeSpamList, DeleteView):
                     object_id=nid,
                     object_repr='Node',
                     message='Confirmed HAM: {}'.format(nid),
-                    action_flag=CONFIRM_HAM
+                    action_flag=CONFIRM_HAM,
                 )
         return redirect('nodes:flagged-spam')
 
@@ -405,7 +410,7 @@ class NodeConfirmSpamView(PermissionRequiredMixin, NodeDeleteBase):
             object_id=node._id,
             object_repr=self.object_type,
             message='Confirmed SPAM: {}'.format(node._id),
-            action_flag=CONFIRM_SPAM
+            action_flag=CONFIRM_SPAM,
         )
         if isinstance(node, Node):
             return redirect(reverse_node(self.kwargs.get('guid')))
@@ -438,7 +443,7 @@ class NodeConfirmHamView(PermissionRequiredMixin, NodeDeleteBase):
             object_id=node._id,
             object_repr=self.object_type,
             message='Confirmed HAM: {}'.format(node._id),
-            action_flag=CONFIRM_HAM
+            action_flag=CONFIRM_HAM,
         )
         if isinstance(node, Node):
             return redirect(reverse_node(self.kwargs.get('guid')))
@@ -459,7 +464,7 @@ class NodeReindexShare(PermissionRequiredMixin, NodeDeleteBase):
             object_id=node._id,
             object_repr='Node',
             message='Node Reindexed (SHARE): {}'.format(node._id),
-            action_flag=REINDEX_SHARE
+            action_flag=REINDEX_SHARE,
         )
         if isinstance(node, Node):
             return redirect(reverse_node(self.kwargs.get('guid')))
@@ -486,7 +491,7 @@ class NodeReindexElastic(PermissionRequiredMixin, NodeDeleteBase):
             object_id=node._id,
             object_repr='Node',
             message='Node Reindexed (Elastic): {}'.format(node._id),
-            action_flag=REINDEX_ELASTIC
+            action_flag=REINDEX_ELASTIC,
         )
         return redirect(reverse_node(self.kwargs.get('guid')))
 
@@ -518,12 +523,16 @@ class RestartStuckRegistrationsView(StuckRegistrationsView):
                 archive(stuck_reg)
                 messages.success(request, 'Registration archive processes has restarted')
             except Exception as exc:
-                messages.error(request, 'This registration cannot be unstuck due to {} '
-                                        'if the problem persists get a developer to fix it.'.format(exc.__class__.__name__))
+                messages.error(
+                    request, 'This registration cannot be unstuck due to {} '
+                    'if the problem persists get a developer to fix it.'.format(exc.__class__.__name__),
+                )
 
         else:
-            messages.error(request, 'This registration may not technically be stuck,'
-                                    ' if the problem persists get a developer to fix it.')
+            messages.error(
+                request, 'This registration may not technically be stuck,'
+                ' if the problem persists get a developer to fix it.',
+            )
 
         return redirect(reverse_node(self.kwargs.get('guid')))
 
@@ -537,7 +546,9 @@ class RemoveStuckRegistrationsView(StuckRegistrationsView):
             stuck_reg.delete_registration_tree(save=True)
             messages.success(request, 'The registration has been deleted')
         else:
-            messages.error(request, 'This registration may not technically be stuck,'
-                                    ' if the problem persists get a developer to fix it.')
+            messages.error(
+                request, 'This registration may not technically be stuck,'
+                ' if the problem persists get a developer to fix it.',
+            )
 
         return redirect(reverse_node(self.kwargs.get('guid')))

@@ -19,7 +19,7 @@ from website.project.decorators import (
     must_be_valid_project, must_be_contributor_or_public,
     must_have_permission, must_be_contributor_and_not_group_member,
     must_not_be_registration, must_be_registration,
-    must_not_be_retracted_registration
+    must_not_be_retracted_registration,
 )
 from osf import features
 from osf.models import Identifier, RegistrationSchema
@@ -178,7 +178,7 @@ def project_before_register(auth, node, **kwargs):
         },
         'partial': {
             'addons': set(),
-            'message': 'The current version of the content in <strong>{0}</strong> will be copied to the registration, but version history will be lost.'
+            'message': 'The current version of the content in <strong>{0}</strong> will be copied to the registration, but version history will be lost.',
         },
         'none': {
             'addons': set(),
@@ -213,13 +213,13 @@ def project_before_register(auth, node, **kwargs):
     if node.has_pointers_recursive:
         prompts.append(
             language.BEFORE_REGISTER_HAS_POINTERS.format(
-                category=node.project_or_component
-            )
+                category=node.project_or_component,
+            ),
         )
 
     return {
         'prompts': prompts,
-        'errors': error_messages
+        'errors': error_messages,
     }
 
 

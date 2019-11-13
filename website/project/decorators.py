@@ -49,7 +49,7 @@ def _kwargs_to_nodes(kwargs):
             data={
                 'message_short': 'Node not found',
                 'message_long': 'No Node with that primary key could be found',
-            }
+            },
         )
     return parent, node
 
@@ -147,7 +147,7 @@ def must_not_be_retracted_registration(func):
 
         if node.is_retracted:
             return redirect(
-                web_url_for('resolve_guid', guid=node._id)
+                web_url_for('resolve_guid', guid=node._id),
             )
         return func(*args, **kwargs)
 
@@ -168,7 +168,7 @@ def must_not_be_registration(func):
                 data={
                     'message_short': 'Registrations cannot be changed',
                     'message_long': "The operation you're trying to do cannot be applied to registered projects, which are not allowed to be changed",
-                }
+                },
             )
         return func(*args, **kwargs)
 
@@ -187,7 +187,7 @@ def must_be_registration(func):
                 data={
                     'message_short': 'Registered Nodes only',
                     'message_long': 'This view is restricted to registered Nodes only',
-                }
+                },
             )
         return func(*args, **kwargs)
 
@@ -228,16 +228,16 @@ def check_can_access(node, user, key=None, api_node=None, include_groups=True):
             data = {
                 'node': {
                     'id': node._id,
-                    'url': node.url
+                    'url': node.url,
                 },
                 'user': {
-                    'access_request_state': access_request.get().machine_state if access_request else None
-                }
+                    'access_request_state': access_request.get().machine_state if access_request else None,
+                },
             }
             raise TemplateHTTPError(
                 http_status.HTTP_403_FORBIDDEN,
                 template='request_access.mako',
-                data=data
+                data=data,
             )
 
         raise HTTPError(

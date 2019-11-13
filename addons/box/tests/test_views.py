@@ -20,7 +20,7 @@ from addons.box.tests.utils import (
     BoxAddonTestCase,
     MockBox,
     patch_client,
-    mock_responses
+    mock_responses,
 )
 
 mock_client = MockBox()
@@ -40,7 +40,7 @@ class TestAuthViews(BoxAddonTestCase, views_testing.OAuthAddonAuthViewsTestCaseM
 
     @mock.patch(
         'addons.box.models.UserSettings.revoke_remote_oauth_access',
-        mock.PropertyMock()
+        mock.PropertyMock(),
     )
     def test_delete_external_account(self):
         super(TestAuthViews, self).test_delete_external_account()
@@ -50,7 +50,7 @@ class TestConfigViews(BoxAddonTestCase, views_testing.OAuthAddonConfigViewsTestC
 
     folder = {
         'path': '/Foo',
-        'id': '12234'
+        'id': '12234',
     }
     Serializer = BoxSerializer
     client = mock_client
@@ -59,7 +59,7 @@ class TestConfigViews(BoxAddonTestCase, views_testing.OAuthAddonConfigViewsTestC
         self.mock_data = mock.patch.object(
             NodeSettings,
             '_folder_data',
-            return_value=(self.folder['id'], self.folder['path'])
+            return_value=(self.folder['id'], self.folder['path']),
         )
         self.mock_data.start()
         super(TestConfigViews, self).setUp()
@@ -110,8 +110,10 @@ class TestFilebrowserViews(BoxAddonTestCase, OsfTestCase):
         with patch_client('addons.box.models.Client'):
             self.node_settings.folder_name = None
             self.node_settings.save()
-            url = api_url_for('box_folder_list',
-                pid=self.project._primary_key, foldersOnly=True)
+            url = api_url_for(
+                'box_folder_list',
+                pid=self.project._primary_key, foldersOnly=True,
+            )
             res = self.app.get(url, auth=self.user.auth)
             contents = mock_client.folder('', list=True)['item_collection']['entries']
             expected = [each for each in contents if each['type'] == 'folder']
@@ -177,8 +179,10 @@ class TestRestrictions(BoxAddonTestCase, OsfTestCase):
         mock_auth.__get__ = mock.Mock(return_value=False)
 
         # tries to access a parent folder
-        url = self.project.api_url_for('box_folder_list',
-            path='foo bar')
+        url = self.project.api_url_for(
+            'box_folder_list',
+            path='foo bar',
+        )
         res = self.app.get(url, auth=self.contrib.auth, expect_errors=True)
         assert_equal(res.status_code, http_status.HTTP_403_FORBIDDEN)
 

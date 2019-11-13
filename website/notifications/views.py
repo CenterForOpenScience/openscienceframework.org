@@ -59,13 +59,13 @@ def configure_subscription(auth):
         if not target_id == user._id:
             sentry.log_message(
                 '{!r} attempted to subscribe to either a bad '
-                'id or non-node non-self id, {}'.format(user, target_id)
+                'id or non-node non-self id, {}'.format(user, target_id),
             )
             raise HTTPError(http_status.HTTP_404_NOT_FOUND)
 
         if notification_type == 'adopt_parent':
             sentry.log_message(
-                '{!r} attempted to adopt_parent of a none node id, {}'.format(user, target_id)
+                '{!r} attempted to adopt_parent of a none node id, {}'.format(user, target_id),
             )
             raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
         owner = user
@@ -76,7 +76,7 @@ def configure_subscription(auth):
 
         if isinstance(node, Registration):
             sentry.log_message(
-                '{!r} attempted to subscribe to registration, {}'.format(user, target_id)
+                '{!r} attempted to subscribe to registration, {}'.format(user, target_id),
             )
             raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
 
@@ -90,7 +90,7 @@ def configure_subscription(auth):
                 if not parent:
                     sentry.log_message(
                         '{!r} attempted to adopt_parent of '
-                        'the parentless project, {!r}'.format(user, node)
+                        'the parentless project, {!r}'.format(user, node),
                     )
                     raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
 

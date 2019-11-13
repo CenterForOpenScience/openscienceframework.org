@@ -93,7 +93,7 @@ from osf_tests.factories import (
     UserFactory,
     UnconfirmedUserFactory,
     UnregUserFactory,
-    RegionFactory
+    RegionFactory,
 )
 
 @mock_app.route('/errorexc')
@@ -186,7 +186,7 @@ class TestViewingProjectWithPrivateLink(OsfTestCase):
         assert_equal(res.status_code, 301)
         assert_equal(
             res.request.path,
-            '/login'
+            '/login',
         )
 
     def test_logged_in_no_private_key(self):
@@ -196,7 +196,8 @@ class TestViewingProjectWithPrivateLink(OsfTestCase):
 
     def test_logged_in_has_key(self):
         res = self.app.get(
-            self.project_url, {'view_only': self.link.key}, auth=self.user.auth)
+            self.project_url, {'view_only': self.link.key}, auth=self.user.auth,
+        )
         assert_equal(res.status_code, 200)
 
     @unittest.skip('Skipping for now until we find a way to mock/set the referrer')
@@ -284,7 +285,7 @@ class TestProjectViews(OsfTestCase):
         self.project = ProjectFactory(
             title='Ham',
             description='Honey-baked',
-            creator=self.user1
+            creator=self.user1,
         )
         self.project.add_contributor(self.user2, auth=Auth(self.user1))
         self.project.save()
@@ -292,7 +293,7 @@ class TestProjectViews(OsfTestCase):
         self.project2 = ProjectFactory(
             title='Tofu',
             description='Glazed',
-            creator=self.user1
+            creator=self.user1,
         )
         self.project2.add_contributor(self.user2, auth=Auth(self.user1))
         self.project2.save()
@@ -301,7 +302,7 @@ class TestProjectViews(OsfTestCase):
     def test_view_project_tos_status_message(self, mock_push_status_message):
         self.app.get(
             self.project.web_url_for('view_project'),
-            auth=self.auth
+            auth=self.auth,
         )
         assert_true(mock_push_status_message.called)
         assert_equal('terms_of_service', mock_push_status_message.mock_calls[0][2]['id'])
@@ -312,7 +313,7 @@ class TestProjectViews(OsfTestCase):
         self.user1.save()
         self.app.get(
             self.project.web_url_for('view_project'),
-            auth=self.auth
+            auth=self.auth,
         )
         assert_false(mock_push_status_message.called)
 
@@ -369,8 +370,10 @@ class TestProjectViews(OsfTestCase):
         user1_contrib.save()
         url = self.project.api_url_for('project_remove_contributor')
         res = self.app.post_json(
-            url, {'contributorID': self.user2._id,
-                  'nodeIDs': [self.project._id]}, auth=self.auth, expect_errors=True
+            url, {
+                'contributorID': self.user2._id,
+                'nodeIDs': [self.project._id],
+            }, auth=self.auth, expect_errors=True,
         )
         assert_equal(res.status_code, http_status.HTTP_403_FORBIDDEN)
         assert_equal(res.json['message_long'], 'Must have at least one bibliographic contributor')
@@ -390,14 +393,14 @@ class TestProjectViews(OsfTestCase):
             title='parent project',
             category='project',
             parent=self.project,
-            is_public=False
+            is_public=False,
         )
         self.parent_project.save()
         self.child_project = NodeFactory(
             title='child project',
             category='project',
             parent=self.parent_project,
-            is_public=False
+            is_public=False,
         )
         self.child_project.save()
         url = self.child_project.web_url_for('view_project')
@@ -407,9 +410,11 @@ class TestProjectViews(OsfTestCase):
 
     def test_edit_description(self):
         url = '/api/v1/project/{0}/edit/'.format(self.project._id)
-        self.app.post_json(url,
-                           {'name': 'description', 'value': 'Deep-fried'},
-                           auth=self.auth)
+        self.app.post_json(
+            url,
+            {'name': 'description', 'value': 'Deep-fried'},
+            auth=self.auth,
+        )
         self.project.reload()
         assert_equal(self.project.description, 'Deep-fried')
 
@@ -479,13 +484,19 @@ class TestProjectViews(OsfTestCase):
             url,
             {
                 'contributors': [
-                    {'id': self.project.creator._id, 'permission': permissions.ADMIN,
-                        'registered': True, 'visible': True},
-                    {'id': self.user1._id, 'permission': permissions.READ,
-                        'registered': True, 'visible': True},
-                    {'id': self.user2._id, 'permission': permissions.ADMIN,
-                        'registered': True, 'visible': True},
-                ]
+                    {
+                        'id': self.project.creator._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': True,
+                    },
+                    {
+                        'id': self.user1._id, 'permission': permissions.READ,
+                        'registered': True, 'visible': True,
+                    },
+                    {
+                        'id': self.user2._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': True,
+                    },
+                ],
             },
             auth=self.auth,
         )
@@ -506,11 +517,15 @@ class TestProjectViews(OsfTestCase):
             url,
             {
                 'contributors': [
-                    {'id': self.user1._id, 'permission': permissions.ADMIN,
-                     'registered': True, 'visible': True},
-                    {'id': self.user2._id, 'permission': permissions.ADMIN,
-                     'registered': True, 'visible': True},
-                ]
+                    {
+                        'id': self.user1._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': True,
+                    },
+                    {
+                        'id': self.user2._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': True,
+                    },
+                ],
             },
             auth=self.auth,
         )
@@ -520,11 +535,15 @@ class TestProjectViews(OsfTestCase):
             url,
             {
                 'contributors': [
-                    {'id': self.user1._id, 'permission': permissions.ADMIN,
-                     'registered': True, 'visible': True},
-                    {'id': self.user2._id, 'permission': permissions.READ,
-                     'registered': True, 'visible': True},
-                ]
+                    {
+                        'id': self.user1._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': True,
+                    },
+                    {
+                        'id': self.user2._id, 'permission': permissions.READ,
+                        'registered': True, 'visible': True,
+                    },
+                ],
             },
             auth=self.auth,
         )
@@ -548,7 +567,7 @@ class TestProjectViews(OsfTestCase):
             [
                 {'user': reg_user1, 'permissions': permissions.ADMIN, 'visible': True},
                 {'user': reg_user2, 'permissions': permissions.ADMIN, 'visible': False},
-            ]
+            ],
         )
         # Add a non-registered user
         unregistered_user = project.add_unregistered_contributor(
@@ -562,15 +581,23 @@ class TestProjectViews(OsfTestCase):
             url,
             {
                 'contributors': [
-                    {'id': reg_user2._id, 'permission': permissions.ADMIN,
-                        'registered': True, 'visible': False},
-                    {'id': project.creator._id, 'permission': permissions.ADMIN,
-                        'registered': True, 'visible': True},
-                    {'id': unregistered_user._id, 'permission': permissions.ADMIN,
-                        'registered': False, 'visible': True},
-                    {'id': reg_user1._id, 'permission': permissions.ADMIN,
-                        'registered': True, 'visible': True},
-                ]
+                    {
+                        'id': reg_user2._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': False,
+                    },
+                    {
+                        'id': project.creator._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': True,
+                    },
+                    {
+                        'id': unregistered_user._id, 'permission': permissions.ADMIN,
+                        'registered': False, 'visible': True,
+                    },
+                    {
+                        'id': reg_user1._id, 'permission': permissions.ADMIN,
+                        'registered': True, 'visible': True,
+                    },
+                ],
             },
             auth=self.auth,
         )
@@ -580,22 +607,26 @@ class TestProjectViews(OsfTestCase):
         assert_equal(
             # Note: Cast ForeignList to list for comparison
             list(project.contributors),
-            [reg_user2, project.creator, unregistered_user, reg_user1]
+            [reg_user2, project.creator, unregistered_user, reg_user1],
         )
 
         assert_equal(
             list(project.visible_contributors),
-            [project.creator, unregistered_user, reg_user1]
+            [project.creator, unregistered_user, reg_user1],
         )
 
     def test_project_remove_contributor(self):
         url = self.project.api_url_for('project_remove_contributor')
         # User 1 removes user2
-        payload = {'contributorID': self.user2._id,
-                   'nodeIDs': [self.project._id]}
-        self.app.post(url, json.dumps(payload),
-                      content_type='application/json',
-                      auth=self.auth).maybe_follow()
+        payload = {
+            'contributorID': self.user2._id,
+            'nodeIDs': [self.project._id],
+        }
+        self.app.post(
+            url, json.dumps(payload),
+            content_type='application/json',
+            auth=self.auth,
+        ).maybe_follow()
         self.project.reload()
         assert_not_in(self.user2._id, self.project.contributors)
         # A log event was added
@@ -604,11 +635,15 @@ class TestProjectViews(OsfTestCase):
     def test_multiple_project_remove_contributor(self):
         url = self.project.api_url_for('project_remove_contributor')
         # User 1 removes user2
-        payload = {'contributorID': self.user2._id,
-                   'nodeIDs': [self.project._id, self.project2._id]}
-        res = self.app.post(url, json.dumps(payload),
-                            content_type='application/json',
-                            auth=self.auth).maybe_follow()
+        payload = {
+            'contributorID': self.user2._id,
+            'nodeIDs': [self.project._id, self.project2._id],
+        }
+        res = self.app.post(
+            url, json.dumps(payload),
+            content_type='application/json',
+            auth=self.auth,
+        ).maybe_follow()
         self.project.reload()
         self.project2.reload()
         assert_not_in(self.user2._id, self.project.contributors)
@@ -621,11 +656,15 @@ class TestProjectViews(OsfTestCase):
     def test_private_project_remove_self_not_admin(self):
         url = self.project.api_url_for('project_remove_contributor')
         # user2 removes self
-        payload = {'contributorID': self.user2._id,
-                   'nodeIDs': [self.project._id]}
-        res = self.app.post(url, json.dumps(payload),
-                            content_type='application/json',
-                            auth=self.auth2).maybe_follow()
+        payload = {
+            'contributorID': self.user2._id,
+            'nodeIDs': [self.project._id],
+        }
+        res = self.app.post(
+            url, json.dumps(payload),
+            content_type='application/json',
+            auth=self.auth2,
+        ).maybe_follow()
         self.project.reload()
         assert_equal(res.status_code, 200)
         assert_equal(res.json['redirectUrl'], '/dashboard/')
@@ -637,11 +676,15 @@ class TestProjectViews(OsfTestCase):
         self.public_project = ProjectFactory(creator=self.user1, is_public=True)
         self.public_project.add_contributor(self.user2, auth=Auth(self.user1))
         self.public_project.save()
-        payload = {'contributorID': self.user2._id,
-                   'nodeIDs': [self.public_project._id]}
-        res = self.app.post(url, json.dumps(payload),
-                            content_type='application/json',
-                            auth=self.auth2).maybe_follow()
+        payload = {
+            'contributorID': self.user2._id,
+            'nodeIDs': [self.public_project._id],
+        }
+        res = self.app.post(
+            url, json.dumps(payload),
+            content_type='application/json',
+            auth=self.auth2,
+        ).maybe_follow()
         self.public_project.reload()
         assert_equal(res.status_code, 200)
         assert_equal(res.json['redirectUrl'], '/' + self.public_project._id + '/')
@@ -650,30 +693,39 @@ class TestProjectViews(OsfTestCase):
     def test_project_remove_other_not_admin(self):
         url = self.project.api_url_for('project_remove_contributor')
         # User 1 removes user2
-        payload = {'contributorID': self.user1._id,
-                   'nodeIDs': [self.project._id]}
-        res = self.app.post(url, json.dumps(payload),
-                            content_type='application/json',
-                            expect_errors=True,
-                            auth=self.auth2).maybe_follow()
+        payload = {
+            'contributorID': self.user1._id,
+            'nodeIDs': [self.project._id],
+        }
+        res = self.app.post(
+            url, json.dumps(payload),
+            content_type='application/json',
+            expect_errors=True,
+            auth=self.auth2,
+        ).maybe_follow()
         self.project.reload()
         assert_equal(res.status_code, 403)
-        assert_equal(res.json['message_long'],
-                     'You do not have permission to perform this action. '
-                     'If this should not have occurred and the issue persists, '
-                     + language.SUPPORT_LINK
-                     )
+        assert_equal(
+            res.json['message_long'],
+            'You do not have permission to perform this action. '
+            'If this should not have occurred and the issue persists, '
+            + language.SUPPORT_LINK,
+        )
         assert_in(self.user1, self.project.contributors)
 
     def test_project_remove_fake_contributor(self):
         url = self.project.api_url_for('project_remove_contributor')
         # User 1 removes user2
-        payload = {'contributorID': 'badid',
-                   'nodeIDs': [self.project._id]}
-        res = self.app.post(url, json.dumps(payload),
-                            content_type='application/json',
-                            expect_errors=True,
-                            auth=self.auth).maybe_follow()
+        payload = {
+            'contributorID': 'badid',
+            'nodeIDs': [self.project._id],
+        }
+        res = self.app.post(
+            url, json.dumps(payload),
+            content_type='application/json',
+            expect_errors=True,
+            auth=self.auth,
+        ).maybe_follow()
         self.project.reload()
         # Assert the contributor id was invalid
         assert_equal(res.status_code, 400)
@@ -683,12 +735,16 @@ class TestProjectViews(OsfTestCase):
     def test_project_remove_self_only_admin(self):
         url = self.project.api_url_for('project_remove_contributor')
         # User 1 removes user2
-        payload = {'contributorID': self.user1._id,
-                   'nodeIDs': [self.project._id]}
-        res = self.app.post(url, json.dumps(payload),
-                            content_type='application/json',
-                            expect_errors=True,
-                            auth=self.auth).maybe_follow()
+        payload = {
+            'contributorID': self.user1._id,
+            'nodeIDs': [self.project._id],
+        }
+        res = self.app.post(
+            url, json.dumps(payload),
+            content_type='application/json',
+            expect_errors=True,
+            auth=self.auth,
+        ).maybe_follow()
 
         self.project.reload()
         assert_equal(res.status_code, 400)
@@ -703,7 +759,7 @@ class TestProjectViews(OsfTestCase):
             [
                 {'user': reg_user1, 'permissions': permissions.ADMIN, 'visible': True},
                 {'user': reg_user2, 'permissions': permissions.ADMIN, 'visible': True},
-            ]
+            ],
         )
 
         # add an unregistered contributor
@@ -725,8 +781,10 @@ class TestProjectViews(OsfTestCase):
     def test_edit_node_title(self):
         url = '/api/v1/project/{0}/edit/'.format(self.project._id)
         # The title is changed though posting form data
-        self.app.post_json(url, {'name': 'title', 'value': 'Bacon'},
-                           auth=self.auth).maybe_follow()
+        self.app.post_json(
+            url, {'name': 'title', 'value': 'Bacon'},
+            auth=self.auth,
+        ).maybe_follow()
         self.project.reload()
         # The title was changed
         assert_equal(self.project.title, 'Bacon')
@@ -1121,7 +1179,7 @@ class TestUserProfile(OsfTestCase):
         res = self.app.put_json(
             url,
             {'id': user._id, 'emails': [{'address': 'fred@queen.test', 'primary': True, 'confirmed': True}]},
-            auth=user.auth
+            auth=user.auth,
         )
         assert_equal(res.status_code, 200)
 
@@ -1137,7 +1195,7 @@ class TestUserProfile(OsfTestCase):
             url,
             payload,
             auth=self.user.auth,
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, 400)
         assert_equal(res.json['message_long'], 'Invalid personal URL.')
@@ -1184,7 +1242,7 @@ class TestUserProfile(OsfTestCase):
         )
         assert_equal(
             res.json['addons']['github'],
-            'abc'
+            'abc',
         )
 
     def test_serialize_social_addons_not_editable(self):
@@ -1202,25 +1260,27 @@ class TestUserProfile(OsfTestCase):
         assert_not_in('addons', res.json)
 
     def test_unserialize_and_serialize_jobs(self):
-        jobs = [{
-            'institution': 'an institution',
-            'department': 'a department',
-            'title': 'a title',
-            'startMonth': 'January',
-            'startYear': '2001',
-            'endMonth': 'March',
-            'endYear': '2001',
-            'ongoing': False,
-        }, {
-            'institution': 'another institution',
-            'department': None,
-            'title': None,
-            'startMonth': 'May',
-            'startYear': '2001',
-            'endMonth': None,
-            'endYear': None,
-            'ongoing': True,
-        }]
+        jobs = [
+            {
+                'institution': 'an institution',
+                'department': 'a department',
+                'title': 'a title',
+                'startMonth': 'January',
+                'startYear': '2001',
+                'endMonth': 'March',
+                'endYear': '2001',
+                'ongoing': False,
+            }, {
+                'institution': 'another institution',
+                'department': None,
+                'title': None,
+                'startMonth': 'May',
+                'startYear': '2001',
+                'endMonth': None,
+                'endYear': None,
+                'ongoing': True,
+            },
+        ]
         payload = {'contents': jobs}
         url = api_url_for('unserialize_jobs')
         self.app.put_json(url, payload, auth=self.user.auth)
@@ -1235,25 +1295,27 @@ class TestUserProfile(OsfTestCase):
             assert_equal(job, res.json['contents'][i])
 
     def test_unserialize_and_serialize_schools(self):
-        schools = [{
-            'institution': 'an institution',
-            'department': 'a department',
-            'degree': 'a degree',
-            'startMonth': 1,
-            'startYear': '2001',
-            'endMonth': 5,
-            'endYear': '2001',
-            'ongoing': False,
-        }, {
-            'institution': 'another institution',
-            'department': None,
-            'degree': None,
-            'startMonth': 5,
-            'startYear': '2001',
-            'endMonth': None,
-            'endYear': None,
-            'ongoing': True,
-        }]
+        schools = [
+            {
+                'institution': 'an institution',
+                'department': 'a department',
+                'degree': 'a degree',
+                'startMonth': 1,
+                'startYear': '2001',
+                'endMonth': 5,
+                'endYear': '2001',
+                'ongoing': False,
+            }, {
+                'institution': 'another institution',
+                'department': None,
+                'degree': None,
+                'startMonth': 5,
+                'startYear': '2001',
+                'endMonth': None,
+                'endYear': None,
+                'ongoing': True,
+            },
+        ]
         payload = {'contents': schools}
         url = api_url_for('unserialize_schools')
         self.app.put_json(url, payload, auth=self.user.auth)
@@ -1279,7 +1341,7 @@ class TestUserProfile(OsfTestCase):
                 'endMonth': 3,
                 'endYear': '2014',
                 'ongoing': False,
-            }
+            },
         ]
         payload = {'contents': jobs}
         url = api_url_for('unserialize_jobs')
@@ -1322,7 +1384,7 @@ class TestUserProfile(OsfTestCase):
                 'endMonth': 3,
                 'endYear': '2014',
                 'ongoing': False,
-            }
+            },
         ]
         payload = {'contents': schools}
         url = api_url_for('unserialize_schools')
@@ -1345,7 +1407,7 @@ class TestUserProfile(OsfTestCase):
                 'endMonth': 3,
                 'endYear': '2014',
                 'ongoing': False,
-            }
+            },
         ]
         payload = {'contents': jobs}
         url = api_url_for('unserialize_jobs')
@@ -1398,10 +1460,13 @@ class TestUserProfile(OsfTestCase):
         user1 = AuthUserFactory()
         url = api_url_for('update_user')
         email = 'test@cos.io'
-        header = {'id': user1._id,
-                  'emails': [{'address': user1.username, 'primary': True, 'confirmed': True},
-                             {'address': email, 'primary': False, 'confirmed': False}
-                  ]}
+        header = {
+            'id': user1._id,
+            'emails': [
+                {'address': user1.username, 'primary': True, 'confirmed': True},
+                           {'address': email, 'primary': False, 'confirmed': False},
+            ],
+        }
         res = self.app.put_json(url, header, auth=user1.auth)
         assert_equal(res.status_code, 200)
         assert_in('emails', res.json['profile'])
@@ -1412,9 +1477,10 @@ class TestUserProfile(OsfTestCase):
         user1 = AuthUserFactory()
         url = api_url_for('resend_confirmation')
         email = 'test@cos.io'
-        header = {'id': user1._id,
-                  'email': {'address': email, 'primary': False, 'confirmed': False}
-                  }
+        header = {
+            'id': user1._id,
+            'email': {'address': email, 'primary': False, 'confirmed': False},
+        }
         res = self.app.put_json(url, header, auth=user1.auth)
         assert_equal(res.status_code, 200)
         assert_in('emails', res.json['profile'])
@@ -1437,7 +1503,8 @@ class TestUserProfile(OsfTestCase):
         url = api_url_for('update_user', uid=self.user._id)
         emails = [
             {'address': self.user.username, 'primary': False, 'confirmed': True},
-            {'address': email, 'primary': True, 'confirmed': True}]
+            {'address': email, 'primary': True, 'confirmed': True},
+        ]
         payload = {'locale': '', 'id': self.user._id, 'emails': emails}
         self.app.put_json(url, payload, auth=self.user.auth)
         # the test app doesn't have celery handlers attached, so we need to call this manually.
@@ -1447,7 +1514,7 @@ class TestUserProfile(OsfTestCase):
         mock_client.lists.unsubscribe.assert_called_with(
             id=list_id,
             email={'email': self.user.username},
-            send_goodbye=True
+            send_goodbye=True,
         )
         mock_client.lists.subscribe.assert_called_with(
             id=list_id,
@@ -1457,7 +1524,7 @@ class TestUserProfile(OsfTestCase):
                 'lname': self.user.family_name,
             },
             double_optin=False,
-            update_existing=True
+            update_existing=True,
         )
         handlers.celery_teardown_request()
 
@@ -1477,7 +1544,8 @@ class TestUserProfile(OsfTestCase):
         url = api_url_for('update_user', uid=self.user._id)
         emails = [
             {'address': self.user.username, 'primary': False, 'confirmed': True},
-            {'address': email, 'primary': True, 'confirmed': True}]
+            {'address': email, 'primary': True, 'confirmed': True},
+        ]
         payload = {'locale': '', 'id': self.user._id, 'emails': emails}
         self.app.put_json(url, payload, auth=self.user.auth)
 
@@ -1582,10 +1650,12 @@ class TestUserAccount(OsfTestCase):
         self.user.auth = (self.user.username, 'password')
         self.user.save()
 
-    def test_password_change_valid(self,
-                                   old_password='password',
-                                   new_password='Pa$$w0rd',
-                                   confirm_password='Pa$$w0rd'):
+    def test_password_change_valid(
+        self,
+        old_password='password',
+        new_password='Pa$$w0rd',
+        confirm_password='Pa$$w0rd',
+    ):
         url = web_url_for('user_account_password')
         post_data = {
             'old_password': old_password,
@@ -1607,8 +1677,10 @@ class TestUserAccount(OsfTestCase):
         assert_in('Password updated successfully', mock_push_status_message.mock_calls[0][1][0])
 
     @mock.patch('website.profile.views.push_status_message')
-    def test_password_change_invalid(self, mock_push_status_message, old_password='', new_password='',
-                                     confirm_password='', error_message='Old password is invalid'):
+    def test_password_change_invalid(
+        self, mock_push_status_message, old_password='', new_password='',
+        confirm_password='', error_message='Old password is invalid',
+    ):
         url = web_url_for('user_account_password')
         post_data = {
             'old_password': old_password,
@@ -1798,8 +1870,8 @@ class TestUserAccount(OsfTestCase):
     def test_get_unconfirmed_emails_exclude_external_identity(self):
         external_identity = {
             'service': {
-                'AFI': 'LINK'
-            }
+                'AFI': 'LINK',
+            },
         }
         self.user.add_unconfirmed_email('james@steward.com')
         self.user.add_unconfirmed_email('steward@james.com', external_identity=external_identity)
@@ -1839,7 +1911,7 @@ class TestAddingContributorViews(OsfTestCase):
         contrib_data = [
             add_contributor_json(contrib),
             serialize_unregistered(fake.name(), unreg.username),
-            unreg_no_record
+            unreg_no_record,
         ]
         contrib_data[0]['permission'] = permissions.ADMIN
         contrib_data[1]['permission'] = permissions.WRITE
@@ -1850,7 +1922,8 @@ class TestAddingContributorViews(OsfTestCase):
         res = deserialize_contributors(
             self.project,
             contrib_data,
-            auth=Auth(self.creator))
+            auth=Auth(self.creator),
+        )
         assert_equal(len(res), len(contrib_data))
         assert_true(res[0]['user'].is_registered)
 
@@ -1873,7 +1946,8 @@ class TestAddingContributorViews(OsfTestCase):
                 self.project,
                 contrib_data,
                 auth=Auth(self.creator),
-                validate=True)
+                validate=True,
+            )
 
     def test_deserialize_contributors_validates_email(self):
         name = fake.name()
@@ -1888,16 +1962,19 @@ class TestAddingContributorViews(OsfTestCase):
                 self.project,
                 contrib_data,
                 auth=Auth(self.creator),
-                validate=True)
+                validate=True,
+            )
 
     def test_serialize_unregistered_with_record(self):
         name, email = fake.name(), fake_email()
-        user = self.project.add_unregistered_contributor(fullname=name,
-                                                         email=email, auth=Auth(self.project.creator))
+        user = self.project.add_unregistered_contributor(
+            fullname=name,
+            email=email, auth=Auth(self.project.creator),
+        )
         self.project.save()
         res = serialize_unregistered(
             fullname=name,
-            email=email
+            email=email,
         )
         assert_false(res['active'])
         assert_false(res['registered'])
@@ -1923,13 +2000,15 @@ class TestAddingContributorViews(OsfTestCase):
         reg_dict['visible'] = True
         payload = {
             'users': [reg_dict, pseudouser],
-            'node_ids': []
+            'node_ids': [],
         }
         url = self.project.api_url_for('project_contributors_post')
         self.app.post_json(url, payload).maybe_follow()
         self.project.reload()
-        assert_equal(len(self.project.contributors),
-                     n_contributors_pre + len(payload['users']))
+        assert_equal(
+            len(self.project.contributors),
+            n_contributors_pre + len(payload['users']),
+        )
 
         new_unreg = auth.get_user(email=email)
         assert_false(new_unreg.is_registered)
@@ -1942,10 +2021,12 @@ class TestAddingContributorViews(OsfTestCase):
 
     @mock.patch('website.project.views.contributor.send_claim_email')
     def test_add_contributors_post_only_sends_one_email_to_unreg_user(
-            self, mock_send_claim_email):
+            self, mock_send_claim_email,
+    ):
         # Project has components
         comp1, comp2 = NodeFactory(
-            creator=self.creator), NodeFactory(creator=self.creator)
+            creator=self.creator,
+        ), NodeFactory(creator=self.creator)
         NodeRelation.objects.create(parent=self.project, child=comp1)
         NodeRelation.objects.create(parent=self.project, child=comp2)
         self.project.save()
@@ -1961,7 +2042,7 @@ class TestAddingContributorViews(OsfTestCase):
         }
         payload = {
             'users': [unreg_user],
-            'node_ids': [comp1._primary_key, comp2._primary_key]
+            'node_ids': [comp1._primary_key, comp2._primary_key],
         }
 
         # send request
@@ -1985,11 +2066,12 @@ class TestAddingContributorViews(OsfTestCase):
             'fullname': user.fullname,
             'email': user.username,
             'permission': permissions.WRITE,
-            'visible': True}
+            'visible': True,
+        }
 
         payload = {
             'users': [user_dict],
-            'node_ids': [comp1._primary_key, comp2._primary_key]
+            'node_ids': [comp1._primary_key, comp2._primary_key],
         }
 
         # send request
@@ -2013,11 +2095,12 @@ class TestAddingContributorViews(OsfTestCase):
             'fullname': user.fullname,
             'email': user.username,
             'permission': permissions.WRITE,
-            'visible': True}
+            'visible': True,
+        }
 
         payload = {
             'users': [user_dict],
-            'node_ids': [sub_component._primary_key]
+            'node_ids': [sub_component._primary_key],
         }
 
         # send request
@@ -2041,7 +2124,7 @@ class TestAddingContributorViews(OsfTestCase):
         }
         payload = {
             'users': [pseudouser],
-            'node_ids': []
+            'node_ids': [],
         }
         url = self.project.api_url_for('project_contributors_post')
         self.app.post_json(url, payload).maybe_follow()
@@ -2054,7 +2137,7 @@ class TestAddingContributorViews(OsfTestCase):
         contributors = [{
             'user': contributor,
             'visible': True,
-            'permissions': permissions.WRITE
+            'permissions': permissions.WRITE,
         }]
         project = ProjectFactory(creator=self.auth.user)
         project.add_contributors(contributors, auth=self.auth)
@@ -2072,7 +2155,7 @@ class TestAddingContributorViews(OsfTestCase):
             can_change_preferences=False,
             logo=settings.OSF_LOGO,
             osf_contact_email=settings.OSF_CONTACT_EMAIL,
-            published_preprints=[]
+            published_preprints=[],
 
         )
         assert_almost_equal(contributor.contributor_added_email_records[project._id]['last_sent'], int(time.time()), delta=1)
@@ -2178,7 +2261,7 @@ class TestAddingContributorViews(OsfTestCase):
         reg_dict['visible'] = True
         payload = {
             'users': [reg_dict, pseudouser],
-            'node_ids': []
+            'node_ids': [],
         }
         url = self.project.api_url_for('project_contributors_post')
         self.app.post_json(url, payload).maybe_follow()
@@ -2203,13 +2286,15 @@ class TestAddingContributorViews(OsfTestCase):
         reg_dict['visible'] = True
         payload = {
             'users': [reg_dict, pseudouser],
-            'node_ids': [self.project._primary_key, child._primary_key]
+            'node_ids': [self.project._primary_key, child._primary_key],
         }
         url = '/api/v1/project/{0}/contributors/'.format(self.project._id)
         self.app.post_json(url, payload).maybe_follow()
         child.reload()
-        assert_equal(child.contributors.count(),
-                     n_contributors_pre + len(payload['users']))
+        assert_equal(
+            child.contributors.count(),
+            n_contributors_pre + len(payload['users']),
+        )
 
     def tearDown(self):
         super(TestAddingContributorViews, self).tearDown()
@@ -2223,7 +2308,8 @@ class TestUserInviteViews(OsfTestCase):
         self.user = AuthUserFactory()
         self.project = ProjectFactory(creator=self.user)
         self.invite_url = '/api/v1/project/{0}/invite_contributor/'.format(
-            self.project._primary_key)
+            self.project._primary_key,
+        )
 
     def test_invite_contributor_post_if_not_in_db(self):
         name, email = fake.name(), fake_email()
@@ -2241,11 +2327,15 @@ class TestUserInviteViews(OsfTestCase):
         # A n unreg user is added to a different project
         name, email = fake.name(), fake_email()
         project2 = ProjectFactory()
-        unreg_user = project2.add_unregistered_contributor(fullname=name, email=email,
-                                                           auth=Auth(project2.creator))
+        unreg_user = project2.add_unregistered_contributor(
+            fullname=name, email=email,
+            auth=Auth(project2.creator),
+        )
         project2.save()
-        res = self.app.post_json(self.invite_url,
-                                 {'fullname': name, 'email': email}, auth=self.user.auth)
+        res = self.app.post_json(
+            self.invite_url,
+            {'fullname': name, 'email': email}, auth=self.user.auth,
+        )
         expected = add_contributor_json(unreg_user)
         expected['fullname'] = name
         expected['email'] = email
@@ -2255,9 +2345,11 @@ class TestUserInviteViews(OsfTestCase):
         reg_user = UserFactory()
         name, email = fake.name(), reg_user.username
         # Tries to invite user that is already registered - this is now permitted.
-        res = self.app.post_json(self.invite_url,
-                                 {'fullname': name, 'email': email},
-                                 auth=self.user.auth)
+        res = self.app.post_json(
+            self.invite_url,
+            {'fullname': name, 'email': email},
+            auth=self.user.auth,
+        )
         contrib = res.json['contributor']
         assert_equal(contrib['id'], reg_user._id)
         assert_equal(contrib['fullname'], name)
@@ -2266,7 +2358,7 @@ class TestUserInviteViews(OsfTestCase):
     def test_invite_contributor_post_if_user_is_already_contributor(self):
         unreg_user = self.project.add_unregistered_contributor(
             fullname=fake.name(), email=fake_email(),
-            auth=Auth(self.project.creator)
+            auth=Auth(self.project.creator),
         )
         self.project.save()
         # Tries to invite unreg user that is already a contributor
@@ -2316,10 +2408,12 @@ class TestUserInviteViews(OsfTestCase):
         project = ProjectFactory()
         referrer = project.creator
         given_email, real_email = fake_email(), fake_email()
-        unreg_user = project.add_unregistered_contributor(fullname=fake.name(),
-                                                          email=given_email, auth=Auth(
-                                                              referrer)
-                                                          )
+        unreg_user = project.add_unregistered_contributor(
+            fullname=fake.name(),
+            email=given_email, auth=Auth(
+                referrer,
+            ),
+        )
         project.save()
         send_claim_email(email=real_email, unclaimed_user=unreg_user, node=project)
 
@@ -2337,7 +2431,7 @@ class TestUserInviteViews(OsfTestCase):
             branded_service=None,
             can_change_preferences=False,
             logo=settings.OSF_LOGO,
-            osf_contact_email=settings.OSF_CONTACT_EMAIL
+            osf_contact_email=settings.OSF_CONTACT_EMAIL,
         )
 
     @mock.patch('website.project.views.contributor.mails.send_mail')
@@ -2371,7 +2465,7 @@ class TestClaimViews(OsfTestCase):
         self.user = self.project.add_unregistered_contributor(
             fullname=self.given_name,
             email=self.given_email,
-            auth=Auth(user=self.referrer)
+            auth=Auth(user=self.referrer),
         )
         self.project.save()
 
@@ -2384,16 +2478,18 @@ class TestClaimViews(OsfTestCase):
         unregistered_user = self.project.add_unregistered_contributor(
             fullname=name,
             email=None,
-            auth=Auth(user=self.referrer)
+            auth=Auth(user=self.referrer),
         )
         assert_in(unregistered_user, self.project.contributors)
 
         # unregistered user comes along and claims themselves on the public project, entering an email
         invite_url = self.project.api_url_for('claim_user_post', uid='undefined')
-        self.app.post_json(invite_url, {
-            'pk': unregistered_user._primary_key,
-            'value': email
-        })
+        self.app.post_json(
+            invite_url, {
+                'pk': unregistered_user._primary_key,
+                'value': email,
+            },
+        )
         assert_equal(claim_email.call_count, 1)
 
         # set unregistered record email since we are mocking send_claim_email()
@@ -2409,7 +2505,7 @@ class TestClaimViews(OsfTestCase):
         claim_url = '/user/{uid}/{pid}/claim/?token={token}'.format(
             uid=unregistered_user._id,
             pid=self.project._id,
-            token=token
+            token=token,
         )
         res = self.app.get(claim_url)
 
@@ -2417,7 +2513,7 @@ class TestClaimViews(OsfTestCase):
         claim_registered_url = '/user/{uid}/{pid}/claim/verify/{token}/'.format(
             uid=unregistered_user._id,
             pid=self.project._id,
-            token=token
+            token=token,
         )
         assert_equal(res.status_code, 302)
         assert_in(claim_registered_url, res.headers.get('Location'))
@@ -2432,16 +2528,18 @@ class TestClaimViews(OsfTestCase):
         unregistered_user = self.project.add_unregistered_contributor(
             fullname=name,
             email=None,
-            auth=Auth(user=self.referrer)
+            auth=Auth(user=self.referrer),
         )
         assert_in(unregistered_user, self.project.contributors)
 
         # unregistered user comes along and claims themselves on the public project, entering an email
         invite_url = self.project.api_url_for('claim_user_post', uid='undefined')
-        self.app.post_json(invite_url, {
-            'pk': unregistered_user._primary_key,
-            'value': secondary_email
-        })
+        self.app.post_json(
+            invite_url, {
+                'pk': unregistered_user._primary_key,
+                'value': secondary_email,
+            },
+        )
         assert_equal(claim_email.call_count, 1)
 
         # set unregistered record email since we are mocking send_claim_email()
@@ -2459,7 +2557,7 @@ class TestClaimViews(OsfTestCase):
         claim_url = '/user/{uid}/{pid}/claim/?token={token}'.format(
             uid=unregistered_user._id,
             pid=self.project._id,
-            token=token
+            token=token,
         )
         res = self.app.get(claim_url)
 
@@ -2467,7 +2565,7 @@ class TestClaimViews(OsfTestCase):
         claim_registered_url = '/user/{uid}/{pid}/claim/verify/{token}/'.format(
             uid=unregistered_user._id,
             pid=self.project._id,
-            token=token
+            token=token,
         )
         assert_equal(res.status_code, 302)
         assert_in(claim_registered_url, res.headers.get('Location'))
@@ -2477,15 +2575,17 @@ class TestClaimViews(OsfTestCase):
         invited_user = self.project.add_unregistered_contributor(
             fullname=given_name,
             email=None,
-            auth=Auth(user=self.referrer)
+            auth=Auth(user=self.referrer),
         )
         self.project.save()
 
         url = invited_user.get_claim_url(self.project._primary_key)
-        res = self.app.post(url, {
-            'password': 'bohemianrhap',
-            'password2': 'bohemianrhap'
-        }, expect_errors=True)
+        res = self.app.post(
+            url, {
+                'password': 'bohemianrhap',
+                'password2': 'bohemianrhap',
+            }, expect_errors=True,
+        )
         assert_equal(res.status_code, 400)
 
     @mock.patch('website.project.views.contributor.mails.send_mail')
@@ -2495,7 +2595,7 @@ class TestClaimViews(OsfTestCase):
         payload = {
             # pk of unreg user record
             'pk': self.user._primary_key,
-            'claimerId': reg_user._primary_key
+            'claimerId': reg_user._primary_key,
         }
         url = '/api/v1/user/{uid}/{pid}/claim/email/'.format(
             uid=self.user._primary_key,
@@ -2515,11 +2615,13 @@ class TestClaimViews(OsfTestCase):
         assert_equal(args[0], reg_user.username)
 
         # view returns the correct JSON
-        assert_equal(res.json, {
-            'status': 'success',
-            'email': reg_user.username,
-            'fullname': self.given_name,
-        })
+        assert_equal(
+            res.json, {
+                'status': 'success',
+                'email': reg_user.username,
+                'fullname': self.given_name,
+            },
+        )
 
     @mock.patch('website.project.views.contributor.mails.send_mail')
     def test_send_claim_registered_email(self, mock_send_mail):
@@ -2527,7 +2629,7 @@ class TestClaimViews(OsfTestCase):
         send_claim_registered_email(
             claimer=reg_user,
             unclaimed_user=self.user,
-            node=self.project
+            node=self.project,
         )
         assert_equal(mock_send_mail.call_count, 2)
         first_call_args = mock_send_mail.call_args_list[0][0]
@@ -2555,11 +2657,12 @@ class TestClaimViews(OsfTestCase):
 
     @mock.patch('website.project.views.contributor.send_claim_registered_email')
     def test_claim_user_post_with_email_already_registered_sends_correct_email(
-            self, send_claim_registered_email):
+            self, send_claim_registered_email,
+    ):
         reg_user = UserFactory()
         payload = {
             'value': reg_user.username,
-            'pk': self.user._primary_key
+            'pk': self.user._primary_key,
         }
         url = self.project.api_url_for('claim_user_post', uid=self.user._id)
         self.app.post_json(url, payload)
@@ -2573,7 +2676,7 @@ class TestClaimViews(OsfTestCase):
 
         assert_not_in(
             self.project._primary_key,
-            self.user.unclaimed_records.keys()
+            self.user.unclaimed_records.keys(),
         )
 
     def test_user_with_claim_url_cannot_claim_twice(self):
@@ -2586,7 +2689,7 @@ class TestClaimViews(OsfTestCase):
 
         assert_not_in(
             self.project._primary_key,
-            self.user.unclaimed_records.keys()
+            self.user.unclaimed_records.keys(),
         )
 
     def test_claim_user_form_redirects_to_password_confirm_page_if_user_is_logged_in(self):
@@ -2609,7 +2712,7 @@ class TestClaimViews(OsfTestCase):
         url = '/user/{uid}/{pid}/claim/verify/{token}/'.format(
             uid=self.user._id,
             pid=self.project._id,
-            token=token
+            token=token,
         )
         # logged out user gets redirected to cas login
         res = self.app.get(url)
@@ -2624,7 +2727,7 @@ class TestClaimViews(OsfTestCase):
         mock_response_from_ticket.return_value = authenticate(
             orcid_user,
             cas_resp.attributes.get('accessToken', ''),
-            redirect(url)
+            redirect(url),
         )
         orcid_user.set_unusable_password()
         orcid_user.save()
@@ -2652,11 +2755,13 @@ class TestClaimViews(OsfTestCase):
     @mock.patch('osf.models.OSFUser.update_search_nodes')
     def test_posting_to_claim_form_with_valid_data(self, mock_update_search_nodes):
         url = self.user.get_claim_url(self.project._primary_key)
-        res = self.app.post(url, {
-            'username': self.user.username,
-            'password': 'killerqueen',
-            'password2': 'killerqueen'
-        })
+        res = self.app.post(
+            url, {
+                'username': self.user.username,
+                'password': 'killerqueen',
+                'password2': 'killerqueen',
+            },
+        )
 
         assert_equal(res.status_code, 302)
         location = res.headers.get('Location')
@@ -2674,16 +2779,20 @@ class TestClaimViews(OsfTestCase):
     def test_posting_to_claim_form_removes_all_unclaimed_data(self, mock_update_search_nodes):
         # user has multiple unclaimed records
         p2 = ProjectFactory(creator=self.referrer)
-        self.user.add_unclaimed_record(p2, referrer=self.referrer,
-                                       given_name=fake.name())
+        self.user.add_unclaimed_record(
+            p2, referrer=self.referrer,
+            given_name=fake.name(),
+        )
         self.user.save()
         assert_true(len(self.user.unclaimed_records.keys()) > 1)  # sanity check
         url = self.user.get_claim_url(self.project._primary_key)
-        self.app.post(url, {
-            'username': self.given_email,
-            'password': 'bohemianrhap',
-            'password2': 'bohemianrhap'
-        })
+        self.app.post(
+            url, {
+                'username': self.given_email,
+                'password': 'bohemianrhap',
+                'password2': 'bohemianrhap',
+            },
+        )
         self.user.reload()
         assert_equal(self.user.unclaimed_records, {})
 
@@ -2702,10 +2811,12 @@ class TestClaimViews(OsfTestCase):
         self.project.save()
         # Goes to claim url
         claim_url = new_user.get_claim_url(self.project._id)
-        self.app.post(claim_url, {
-            'username': unreg.username,
-            'password': 'killerqueen', 'password2': 'killerqueen'
-        })
+        self.app.post(
+            claim_url, {
+                'username': unreg.username,
+                'password': 'killerqueen', 'password2': 'killerqueen',
+            },
+        )
         unreg.reload()
         # Full name was set correctly
         assert_equal(unreg.fullname, different_name)
@@ -2716,12 +2827,18 @@ class TestClaimViews(OsfTestCase):
 
     @mock.patch('website.project.views.contributor.mails.send_mail')
     def test_claim_user_post_returns_fullname(self, send_mail):
-        url = '/api/v1/user/{0}/{1}/claim/email/'.format(self.user._primary_key,
-                                                         self.project._primary_key)
-        res = self.app.post_json(url,
-                                 {'value': self.given_email,
-                                     'pk': self.user._primary_key},
-                                 auth=self.referrer.auth)
+        url = '/api/v1/user/{0}/{1}/claim/email/'.format(
+            self.user._primary_key,
+            self.project._primary_key,
+        )
+        res = self.app.post_json(
+            url,
+            {
+                'value': self.given_email,
+                'pk': self.user._primary_key,
+            },
+            auth=self.referrer.auth,
+        )
         assert_equal(res.json['fullname'], self.given_name)
         assert_true(send_mail.called)
         assert_true(send_mail.called_with(to_addr=self.given_email))
@@ -2729,20 +2846,23 @@ class TestClaimViews(OsfTestCase):
     @mock.patch('website.project.views.contributor.mails.send_mail')
     def test_claim_user_post_if_email_is_different_from_given_email(self, send_mail):
         email = fake_email()  # email that is different from the one the referrer gave
-        url = '/api/v1/user/{0}/{1}/claim/email/'.format(self.user._primary_key,
-                                                         self.project._primary_key)
-        self.app.post_json(url,
-                           {'value': email, 'pk': self.user._primary_key}
-                           )
+        url = '/api/v1/user/{0}/{1}/claim/email/'.format(
+            self.user._primary_key,
+            self.project._primary_key,
+        )
+        self.app.post_json(
+            url,
+            {'value': email, 'pk': self.user._primary_key},
+        )
         assert_true(send_mail.called)
         assert_equal(send_mail.call_count, 2)
         call_to_invited = send_mail.mock_calls[0]
         assert_true(call_to_invited.called_with(
-            to_addr=email
+            to_addr=email,
         ))
         call_to_referrer = send_mail.mock_calls[1]
         assert_true(call_to_referrer.called_with(
-            to_addr=self.given_email
+            to_addr=self.given_email,
         ))
 
     def test_claim_url_with_bad_token_returns_400(self):
@@ -2790,9 +2910,11 @@ class TestPointerViews(OsfTestCase):
             even if they cannot see what it is pointing at"""
         url = web_url_for('view_project', pid=self.project._id)
         user2 = AuthUserFactory()
-        self.project.add_contributor(user2,
-                                     auth=Auth(self.project.creator),
-                                     permissions=permissions.DEFAULT_CONTRIBUTOR_PERMISSIONS)
+        self.project.add_contributor(
+            user2,
+            auth=Auth(self.project.creator),
+            permissions=permissions.DEFAULT_CONTRIBUTOR_PERMISSIONS,
+        )
 
         self._make_pointer_only_user_can_see(user2, self.project)
         self.project.save()
@@ -2807,23 +2929,28 @@ class TestPointerViews(OsfTestCase):
         url = web_url_for('view_project', pid=self.project._id)
 
         for i in range(3):
-            self.project.add_pointer(ProjectFactory(creator=self.user),
-                                     auth=Auth(user=self.user))
+            self.project.add_pointer(
+                ProjectFactory(creator=self.user),
+                auth=Auth(user=self.user),
+            )
         self.project.save()
 
         res = self.app.get(url, auth=self.user.auth).maybe_follow()
         assert_equal(res.status_code, 200)
 
         has_controls = res.lxml.xpath(
-            '//li[@node_id]//i[contains(@class, "remove-pointer")]')
+            '//li[@node_id]//i[contains(@class, "remove-pointer")]',
+        )
         assert_equal(len(has_controls), 3)
 
     def test_pointer_list_read_contributor_cannot_remove_private_component_entry(self):
         url = web_url_for('view_project', pid=self.project._id)
         user2 = AuthUserFactory()
-        self.project.add_contributor(user2,
-                                     auth=Auth(self.project.creator),
-                                     permissions=permissions.READ)
+        self.project.add_contributor(
+            user2,
+            auth=Auth(self.project.creator),
+            permissions=permissions.READ,
+        )
 
         self._make_pointer_only_user_can_see(user2, self.project)
         self.project.save()
@@ -2839,14 +2966,20 @@ class TestPointerViews(OsfTestCase):
     def test_pointer_list_read_contributor_cannot_remove_public_component_entry(self):
         url = web_url_for('view_project', pid=self.project._id)
 
-        self.project.add_pointer(ProjectFactory(creator=self.user,
-                                                is_public=True),
-                                 auth=Auth(user=self.user))
+        self.project.add_pointer(
+            ProjectFactory(
+                creator=self.user,
+                is_public=True,
+            ),
+            auth=Auth(user=self.user),
+        )
 
         user2 = AuthUserFactory()
-        self.project.add_contributor(user2,
-                                     auth=Auth(self.project.creator),
-                                     permissions=permissions.READ)
+        self.project.add_contributor(
+            user2,
+            auth=Auth(self.project.creator),
+            permissions=permissions.READ,
+        )
         self.project.save()
 
         res = self.app.get(url, auth=user2.auth).maybe_follow()
@@ -2854,7 +2987,8 @@ class TestPointerViews(OsfTestCase):
 
         pointer_nodes = res.lxml.xpath('//li[@node_id]')
         has_controls = res.lxml.xpath(
-            '//li[@node_id]//i[contains(@class, "remove-pointer")]')
+            '//li[@node_id]//i[contains(@class, "remove-pointer")]',
+        )
         assert_equal(len(pointer_nodes), 1)
         assert_equal(len(has_controls), 0)
 
@@ -2892,7 +3026,7 @@ class TestPointerViews(OsfTestCase):
         self.project.reload()
         assert_equal(
             self.project.nodes_active.count(),
-            5
+            5,
         )
 
     def test_add_the_same_pointer_more_than_once(self):
@@ -2908,7 +3042,7 @@ class TestPointerViews(OsfTestCase):
             url,
             {'nodeIds': [double_node._id]},
             auth=self.user.auth,
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, 400)
 
@@ -2923,7 +3057,7 @@ class TestPointerViews(OsfTestCase):
             url,
             {'nodeIds': node_ids},
             auth=None,
-            expect_errors=True
+            expect_errors=True,
         )
 
         assert_equal(res.status_code, 401)
@@ -2945,7 +3079,7 @@ class TestPointerViews(OsfTestCase):
         self.project.reload()
         assert_equal(
             self.project.nodes_active.count(),
-            1
+            1,
         )
 
     def test_add_pointers_contributor(self):
@@ -2967,7 +3101,7 @@ class TestPointerViews(OsfTestCase):
         self.project.reload()
         assert_equal(
             self.project.linked_nodes.count(),
-            5
+            5,
         )
 
     def test_add_pointers_not_provided(self):
@@ -2988,7 +3122,7 @@ class TestPointerViews(OsfTestCase):
         self.project.reload()
         assert_equal(
             len(list(self.project.nodes)),
-            0
+            0,
         )
 
     def test_remove_pointer_not_provided(self):
@@ -3002,7 +3136,7 @@ class TestPointerViews(OsfTestCase):
             url,
             {'pointerId': None},
             auth=self.user.auth,
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, 400)
 
@@ -3012,7 +3146,7 @@ class TestPointerViews(OsfTestCase):
             url,
             {'pointerId': 'somefakeid'},
             auth=self.user.auth,
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, 400)
 
@@ -3029,8 +3163,10 @@ class TestPointerViews(OsfTestCase):
 
     def test_fork_pointer_not_provided(self):
         url = self.project.api_url + 'pointer/fork/'
-        res = self.app.post_json(url, {}, auth=self.user.auth,
-                                 expect_errors=True)
+        res = self.app.post_json(
+            url, {}, auth=self.user.auth,
+            expect_errors=True,
+        )
         assert_equal(res.status_code, 400)
 
     def test_fork_pointer_not_found(self):
@@ -3039,7 +3175,7 @@ class TestPointerViews(OsfTestCase):
             url,
             {'nodeId': None},
             auth=self.user.auth,
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, 400)
 
@@ -3049,7 +3185,7 @@ class TestPointerViews(OsfTestCase):
             url,
             {'nodeId': 'somefakeid'},
             auth=self.user.auth,
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, 400)
 
@@ -3160,7 +3296,7 @@ class TestAuthViews(OsfTestCase):
                 'email1': email,
                 'email2': email,
                 'password': password,
-            }
+            },
         )
         user = OSFUser.objects.get(username=email)
         assert_equal(user.fullname, name)
@@ -3178,7 +3314,7 @@ class TestAuthViews(OsfTestCase):
                 'email1': email,
                 'email2': str(email).upper(),
                 'password': password,
-            }
+            },
         )
         user = OSFUser.objects.get(username=email)
         assert_equal(user.fullname, name)
@@ -3194,8 +3330,8 @@ class TestAuthViews(OsfTestCase):
                 'email1': email,
                 'email2': email,
                 'password': password,
-                'acceptedTermsOfService': True
-            }
+                'acceptedTermsOfService': True,
+            },
         )
         user = OSFUser.objects.get(username=email)
         assert_true(user.accepted_terms_of_service)
@@ -3211,8 +3347,8 @@ class TestAuthViews(OsfTestCase):
                 'email1': email,
                 'email2': email,
                 'password': password,
-                'acceptedTermsOfService': False
-            }
+                'acceptedTermsOfService': False,
+            },
         )
         user = OSFUser.objects.get(username=email)
         assert_equal(user.accepted_terms_of_service, None)
@@ -3229,7 +3365,7 @@ class TestAuthViews(OsfTestCase):
                 'email1': email,
                 'email2': email,
                 'password': password,
-            }
+            },
         )
 
         expected_scrub_username = "Eunice O' \"Cornwallis\"cornify_add()"
@@ -3266,9 +3402,9 @@ class TestAuthViews(OsfTestCase):
                 'fullName': name,
                 'email1': email,
                 'email2': email,
-                'password': password
+                'password': password,
             },
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, http_status.HTTP_409_CONFLICT)
         users = OSFUser.objects.filter(username=email)
@@ -3283,9 +3419,9 @@ class TestAuthViews(OsfTestCase):
                 'fullName': name,
                 'email1': email,
                 'email2': email,
-                'password': password
+                'password': password,
             },
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, http_status.HTTP_400_BAD_REQUEST)
         users = OSFUser.objects.filter(username=email)
@@ -3306,7 +3442,7 @@ class TestAuthViews(OsfTestCase):
                     'email2': str(email).upper(),
                     'password': password,
                     'g-recaptcha-response': captcha,
-                }
+                },
             )
             validate_recaptcha.assert_called_with(captcha, remote_ip=None)
             assert_equal(resp.status_code, http_status.HTTP_200_OK)
@@ -3328,7 +3464,7 @@ class TestAuthViews(OsfTestCase):
                     'password': password,
                     # 'g-recaptcha-response': 'supposed to be None',
                 },
-                expect_errors=True
+                expect_errors=True,
             )
             validate_recaptcha.assert_called_with(None, remote_ip=None)
             assert_equal(resp.status_code, http_status.HTTP_400_BAD_REQUEST)
@@ -3348,7 +3484,7 @@ class TestAuthViews(OsfTestCase):
                     'password': password,
                     'g-recaptcha-response': 'bad captcha',
                 },
-                expect_errors=True
+                expect_errors=True,
             )
             assert_equal(resp.status_code, http_status.HTTP_400_BAD_REQUEST)
 
@@ -3410,10 +3546,14 @@ class TestAuthViews(OsfTestCase):
                     'email1': email,
                     'email2': email,
                     'password': password,
-                }
+                },
             )
-        assert_equal(mock_signals.signals_sent(), set([auth.signals.user_registered,
-                                                       auth.signals.unconfirmed_user_created]))
+        assert_equal(
+            mock_signals.signals_sent(), set([
+                auth.signals.user_registered,
+                auth.signals.unconfirmed_user_created,
+            ]),
+        )
         assert_true(mock_send_confirm_email.called)
 
     @mock.patch('framework.auth.views.mails.send_mail')
@@ -3426,7 +3566,7 @@ class TestAuthViews(OsfTestCase):
         self.app.put_json(url, {'id': self.user._id, 'email': header}, auth=self.user.auth)
         assert_true(send_mail.called)
         assert_true(send_mail.called_with(
-            to_addr=email
+            to_addr=email,
         ))
         self.user.reload()
         assert_not_equal(token, self.user.get_confirmation_token(email))
@@ -3521,9 +3661,10 @@ class TestAuthViews(OsfTestCase):
         # Do not return bad token and removes it from user.email_verifications
         email = 'test@mail.com'
         token = 'blahblahblah'
-        self.user.email_verifications[token] = {'expiration': timezone.now() + dt.timedelta(days=1),
-                                                'email': email,
-                                                'confirmed': False }
+        self.user.email_verifications[token] = {
+            'expiration': timezone.now() + dt.timedelta(days=1),
+            'email': email,
+            'confirmed': False, }
         self.user.save()
         self.user.reload()
         assert_equal(self.user.email_verifications[token]['email'], email)
@@ -3717,7 +3858,8 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
         assert_equal(data.get('status_code'), http_status.HTTP_302_FOUND)
         assert_equal(
             data.get('next_url'),
-            get_login_url(web_url_for('dashboard', _absolute=True), campaign='institution'))
+            get_login_url(web_url_for('dashboard', _absolute=True), campaign='institution'),
+        )
 
     def test_institution_login_next_url_with_auth(self):
         # institution login: user with auth and next url
@@ -3731,7 +3873,8 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
         assert_equal(data.get('status_code'), http_status.HTTP_302_FOUND)
         assert_equal(
             data.get('next_url'),
-            get_login_url(self.next_url, campaign='institution'))
+            get_login_url(self.next_url, campaign='institution'),
+        )
 
     def test_institution_regsiter_with_auth(self):
         # institution register: user with auth
@@ -3745,7 +3888,7 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
         assert_equal(data.get('status_code'), http_status.HTTP_302_FOUND)
         assert_equal(
             data.get('next_url'),
-            get_login_url(web_url_for('dashboard', _absolute=True), campaign='institution')
+            get_login_url(web_url_for('dashboard', _absolute=True), campaign='institution'),
         )
 
     def test_campaign_login_with_auth(self):
@@ -3766,7 +3909,7 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
             assert_equal(data.get('status_code'), http_status.HTTP_302_FOUND)
             assert_equal(
                 data.get('next_url'),
-                web_url_for('auth_register', campaign=campaign, next=campaign_url_for(campaign))
+                web_url_for('auth_register', campaign=campaign, next=campaign_url_for(campaign)),
             )
 
     def test_campaign_register_with_auth(self):
@@ -3792,7 +3935,7 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
                 # proxy campaign: preprints and branded ones
                 assert_equal(
                     data.get('next_url'),
-                    web_url_for('auth_login', next=campaign_url_for(campaign), _absolute=True)
+                    web_url_for('auth_login', next=campaign_url_for(campaign), _absolute=True),
                 )
 
     def test_campaign_next_url_login_with_auth(self):
@@ -3815,7 +3958,7 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
             assert_equal(data.get('status_code'), http_status.HTTP_302_FOUND)
             assert_equal(
                 data.get('next_url'),
-                web_url_for('auth_register', campaign=campaign, next=next_url)
+                web_url_for('auth_register', campaign=campaign, next=next_url),
             )
 
     def test_campaign_next_url_register_with_auth(self):
@@ -3843,7 +3986,7 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
                 # proxy campaign: preprints and branded ones
                 assert_equal(
                     data.get('next_url'),
-                    web_url_for('auth_login', next= next_url, _absolute=True)
+                    web_url_for('auth_login', next= next_url, _absolute=True),
                 )
 
     def test_invalid_campaign_login_without_auth(self):
@@ -3851,7 +3994,7 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
             self.no_auth,
             login=True,
             campaign=self.invalid_campaign,
-            next_url=self.next_url
+            next_url=self.next_url,
         )
         redirect_url = web_url_for('auth_login', campaigns=None, next=self.next_url)
         assert_equal(data['status_code'], http_status.HTTP_302_FOUND)
@@ -3863,7 +4006,7 @@ class TestAuthLoginAndRegisterLogic(OsfTestCase):
             self.no_auth,
             login=False,
             campaign=self.invalid_campaign,
-            next_url=self.next_url
+            next_url=self.next_url,
         )
         redirect_url = web_url_for('auth_register', campaigns=None, next=self.next_url)
         assert_equal(data['status_code'], http_status.HTTP_302_FOUND)
@@ -3951,8 +4094,8 @@ class TestExternalAuthViews(OsfTestCase):
         self.provider_id = fake.ean()
         external_identity = {
             'orcid': {
-                self.provider_id: 'CREATE'
-            }
+                self.provider_id: 'CREATE',
+            },
         }
         self.user = OSFUser.create_unconfirmed(
             username=email,
@@ -4117,7 +4260,7 @@ class TestAddonUserViews(OsfTestCase):
         self.app.post_json(
             url,
             {'github': False},
-            auth=self.user.auth
+            auth=self.user.auth,
         ).maybe_follow()
         self.user.reload()
         assert_false(self.user.get_addon('github'))
@@ -4189,18 +4332,20 @@ class TestConfigureMailingListViews(OsfTestCase):
         assert_true(user.mailchimp_mailing_lists[settings.MAILCHIMP_GENERAL_LIST])
         assert_equal(
             user.mailchimp_mailing_lists[settings.MAILCHIMP_GENERAL_LIST],
-            payload[settings.MAILCHIMP_GENERAL_LIST]
+            payload[settings.MAILCHIMP_GENERAL_LIST],
         )
 
         # check that user is subscribed
-        mock_client.lists.subscribe.assert_called_with(id=list_id,
-                                                       email={'email': user.username},
-                                                       merge_vars={
-                                                           'fname': user.given_name,
-                                                           'lname': user.family_name,
-                                                       },
-                                                       double_optin=False,
-                                                       update_existing=True)
+        mock_client.lists.subscribe.assert_called_with(
+            id=list_id,
+            email={'email': user.username},
+            merge_vars={
+                'fname': user.given_name,
+                'lname': user.family_name,
+            },
+            double_optin=False,
+            update_existing=True,
+        )
 
     def test_get_mailchimp_get_endpoint_returns_200(self):
         url = api_url_for('mailchimp_get_endpoint')
@@ -4227,13 +4372,15 @@ class TestConfigureMailingListViews(OsfTestCase):
         data = {
             'type': 'subscribe',
             'data[list_id]': list_id,
-            'data[email]': user.username
+            'data[email]': user.username,
         }
         url = api_url_for('sync_data_from_mailchimp') + '?key=' + settings.MAILCHIMP_WEBHOOK_SECRET_KEY
-        res = self.app.post(url,
-                            data,
-                            content_type='application/x-www-form-urlencoded',
-                            auth=user.auth)
+        res = self.app.post(
+            url,
+            data,
+            content_type='application/x-www-form-urlencoded',
+            auth=user.auth,
+        )
 
         # user field is updated on the OSF
         user.reload()
@@ -4260,13 +4407,15 @@ class TestConfigureMailingListViews(OsfTestCase):
         data = {
             'type': 'profile',
             'data[list_id]': list_id,
-            'data[email]': user.username
+            'data[email]': user.username,
         }
         url = api_url_for('sync_data_from_mailchimp') + '?key=' + settings.MAILCHIMP_WEBHOOK_SECRET_KEY
-        res = self.app.post(url,
-                            data,
-                            content_type='application/x-www-form-urlencoded',
-                            auth=user.auth)
+        res = self.app.post(
+            url,
+            data,
+            content_type='application/x-www-form-urlencoded',
+            auth=user.auth,
+        )
 
         # user field does not change
         user.reload()
@@ -4289,13 +4438,15 @@ class TestConfigureMailingListViews(OsfTestCase):
         data = {
             'type': 'unsubscribe',
             'data[list_id]': list_id,
-            'data[email]': user.username
+            'data[email]': user.username,
         }
         url = api_url_for('sync_data_from_mailchimp') + '?key=' + settings.MAILCHIMP_WEBHOOK_SECRET_KEY
-        res = self.app.post(url,
-                            data,
-                            content_type='application/x-www-form-urlencoded',
-                            auth=user.auth)
+        res = self.app.post(
+            url,
+            data,
+            content_type='application/x-www-form-urlencoded',
+            auth=user.auth,
+        )
 
         # user field is updated on the OSF
         user.reload()
@@ -4303,9 +4454,13 @@ class TestConfigureMailingListViews(OsfTestCase):
 
     def test_sync_data_from_mailchimp_fails_without_secret_key(self):
         user = AuthUserFactory()
-        payload = {'values': {'type': 'unsubscribe',
-                              'data': {'list_id': '12345',
-                                       'email': 'freddie@cos.io'}}}
+        payload = {'values': {
+            'type': 'unsubscribe',
+            'data': {
+                'list_id': '12345',
+                'email': 'freddie@cos.io',
+            },
+        }}
         url = api_url_for('sync_data_from_mailchimp')
         res = self.app.post_json(url, payload, auth=user.auth, expect_errors=True)
         assert_equal(res.status_code, http_status.HTTP_401_UNAUTHORIZED)
@@ -4374,7 +4529,7 @@ class TestReorderComponents(OsfTestCase):
             'new_list': [
                 '{0}'.format(self.private_component._id),
                 '{0}'.format(self.public_component._id),
-            ]
+            ],
         }
         url = self.project.api_url_for('project_reorder_components')
         res = self.app.post_json(url, payload, auth=self.contrib.auth)
@@ -4454,7 +4609,7 @@ class TestProjectCreation(OsfTestCase):
 
     def test_strip_html_from_title(self):
         payload = {
-            'title': 'no html <b>here</b>'
+            'title': 'no html <b>here</b>',
         }
         res = self.app.post_json(self.url, payload, auth=self.creator.auth)
         node = AbstractNode.load(res.json['projectUrl'].replace('/', ''))
@@ -4463,38 +4618,41 @@ class TestProjectCreation(OsfTestCase):
 
     def test_only_needs_title(self):
         payload = {
-            'title': 'Im a real title'
+            'title': 'Im a real title',
         }
         res = self.app.post_json(self.url, payload, auth=self.creator.auth)
         assert_equal(res.status_code, 201)
 
     def test_title_must_be_one_long(self):
         payload = {
-            'title': ''
+            'title': '',
         }
         res = self.app.post_json(
-            self.url, payload, auth=self.creator.auth, expect_errors=True)
+            self.url, payload, auth=self.creator.auth, expect_errors=True,
+        )
         assert_equal(res.status_code, 400)
 
     def test_title_must_be_less_than_200(self):
         payload = {
-            'title': ''.join([str(x) for x in range(0, 250)])
+            'title': ''.join([str(x) for x in range(0, 250)]),
         }
         res = self.app.post_json(
-            self.url, payload, auth=self.creator.auth, expect_errors=True)
+            self.url, payload, auth=self.creator.auth, expect_errors=True,
+        )
         assert_equal(res.status_code, 400)
 
     def test_fails_to_create_project_with_whitespace_title(self):
         payload = {
-            'title': '   '
+            'title': '   ',
         }
         res = self.app.post_json(
-            self.url, payload, auth=self.creator.auth, expect_errors=True)
+            self.url, payload, auth=self.creator.auth, expect_errors=True,
+        )
         assert_equal(res.status_code, 400)
 
     def test_creates_a_project(self):
         payload = {
-            'title': 'Im a real title'
+            'title': 'Im a real title',
         }
         res = self.app.post_json(self.url, payload, auth=self.creator.auth)
         assert_equal(res.status_code, 201)
@@ -4598,7 +4756,7 @@ class TestProjectCreation(OsfTestCase):
 
     def test_new_project_returns_serialized_node_data(self):
         payload = {
-            'title': 'Im a real title'
+            'title': 'Im a real title',
         }
         res = self.app.post_json(self.url, payload, auth=self.creator.auth)
         assert_equal(res.status_code, 201)
@@ -4609,7 +4767,7 @@ class TestProjectCreation(OsfTestCase):
     def test_description_works(self):
         payload = {
             'title': 'Im a real title',
-            'description': 'I describe things!'
+            'description': 'I describe things!',
         }
         res = self.app.post_json(self.url, payload, auth=self.creator.auth)
         assert_equal(res.status_code, 201)
@@ -4621,7 +4779,7 @@ class TestProjectCreation(OsfTestCase):
         other_node = ProjectFactory(creator=self.creator)
         payload = {
             'title': 'Im a real title',
-            'template': other_node._id
+            'template': other_node._id,
         }
         res = self.app.post_json(self.url, payload, auth=self.creator.auth)
         assert_equal(res.status_code, 201)
@@ -4709,9 +4867,11 @@ class TestUserConfirmSignal(OsfTestCase):
         token = unclaimed_user.get_unclaimed_record(project._primary_key)['token']
         with capture_signals() as mock_signals:
             url = web_url_for('claim_user_form', pid=project._id, uid=unclaimed_user._id, token=token)
-            payload = {'username': unclaimed_user.username,
-                       'password': 'password',
-                       'password2': 'password'}
+            payload = {
+                'username': unclaimed_user.username,
+                'password': 'password',
+                'password2': 'password',
+            }
             res = self.app.post(url, payload)
             assert_equal(res.status_code, 302)
 
@@ -4744,10 +4904,12 @@ class TestCommentViews(OsfTestCase):
 
     def test_view_project_comments_updates_user_comments_view_timestamp(self):
         url = self.project.api_url_for('update_comments_timestamp')
-        res = self.app.put_json(url, {
-            'page': 'node',
-            'rootId': self.project._id
-        }, auth=self.user.auth)
+        res = self.app.put_json(
+            url, {
+                'page': 'node',
+                'rootId': self.project._id,
+            }, auth=self.user.auth,
+        )
         self.user.reload()
 
         user_timestamp = self.user.comments_viewed_timestamp[self.project._id]
@@ -4757,10 +4919,12 @@ class TestCommentViews(OsfTestCase):
     def test_confirm_non_contrib_viewers_dont_have_pid_in_comments_view_timestamp(self):
         non_contributor = AuthUserFactory()
         url = self.project.api_url_for('update_comments_timestamp')
-        res = self.app.put_json(url, {
-            'page': 'node',
-            'rootId': self.project._id
-        }, auth=self.user.auth)
+        res = self.app.put_json(
+            url, {
+                'page': 'node',
+                'rootId': self.project._id,
+            }, auth=self.user.auth,
+        )
 
         non_contributor.reload()
         assert_not_in(self.project._id, non_contributor.comments_viewed_timestamp)
@@ -4769,20 +4933,24 @@ class TestCommentViews(OsfTestCase):
         osfstorage = self.project.get_addon('osfstorage')
         root_node = osfstorage.get_root()
         test_file = root_node.append_file('test_file')
-        test_file.create_version(self.user, {
-            'object': '06d80e',
-            'service': 'cloud',
-            osfstorage_settings.WATERBUTLER_RESOURCE: 'osf',
-        }, {
-            'size': 1337,
-            'contentType': 'img/png'
-        }).save()
+        test_file.create_version(
+            self.user, {
+                'object': '06d80e',
+                'service': 'cloud',
+                osfstorage_settings.WATERBUTLER_RESOURCE: 'osf',
+            }, {
+                'size': 1337,
+                'contentType': 'img/png',
+            },
+        ).save()
 
         url = self.project.api_url_for('update_comments_timestamp')
-        res = self.app.put_json(url, {
-            'page': 'files',
-            'rootId': test_file._id
-        }, auth=self.user.auth)
+        res = self.app.put_json(
+            url, {
+                'page': 'files',
+                'rootId': test_file._id,
+            }, auth=self.user.auth,
+        )
         self.user.reload()
 
         user_timestamp = self.user.comments_viewed_timestamp[test_file._id]
@@ -4810,7 +4978,7 @@ class TestCommentViews(OsfTestCase):
             comment.edit(
                 auth=Auth(project.creator),
                 content='edited',
-                save=True
+                save=True,
             )
             n_unread = Comment.find_n_unread(user=user, node=project, page='node')
             assert n_unread == 1
@@ -4829,17 +4997,17 @@ class TestResetPassword(OsfTestCase):
         self.get_url = web_url_for(
             'reset_password_get',
             uid=self.user._id,
-            token=self.osf_key_v2['token']
+            token=self.osf_key_v2['token'],
         )
         self.get_url_invalid_key = web_url_for(
             'reset_password_get',
             uid=self.user._id,
-            token=generate_verification_key()
+            token=generate_verification_key(),
         )
         self.get_url_invalid_user = web_url_for(
             'reset_password_get',
             uid=self.another_user._id,
-            token=self.osf_key_v2['token']
+            token=self.osf_key_v2['token'],
         )
 
     # successfully load reset password page
@@ -4896,7 +5064,7 @@ class TestResetPassword(OsfTestCase):
         mock_service_validate.return_value = cas.CasResponse(
             authenticated=True,
             user=self.user._id,
-            attributes={'accessToken': fake.md5()}
+            attributes={'accessToken': fake.md5()},
         )
         ticket = fake.md5()
         service_url = 'http://accounts.osf.io/?ticket=' + ticket
@@ -4930,7 +5098,7 @@ class TestResolveGuid(OsfTestCase):
         assert_equal(res.status_code, 200)
         assert_equal(
             res.request.path,
-            '/{}/'.format(preprint._id)
+            '/{}/'.format(preprint._id),
         )
 
     def test_preprint_provider_with_domain_without_redirect(self):
@@ -4942,7 +5110,7 @@ class TestResolveGuid(OsfTestCase):
         assert_equal(res.status_code, 200)
         assert_equal(
             res.request.path,
-            '/{}/'.format(preprint._id)
+            '/{}/'.format(preprint._id),
         )
 
     def test_preprint_provider_with_domain_with_redirect(self):
@@ -4956,12 +5124,12 @@ class TestResolveGuid(OsfTestCase):
         assert_equal(res.status_code, 301)
         assert_equal(
             res.headers['location'],
-            '{}{}/'.format(domain, preprint._id)
+            '{}{}/'.format(domain, preprint._id),
         )
 
         assert_equal(
             res.request.path,
-            '/{}/'.format(preprint._id)
+            '/{}/'.format(preprint._id),
         )
 
 
@@ -4974,7 +5142,7 @@ class TestResolveGuid(OsfTestCase):
         assert_equal(res.status_code, 200)
         assert_equal(
             res.request.path,
-            '/{}/'.format(preprint._id)
+            '/{}/'.format(preprint._id),
         )
 
     def test_deleted_quick_file_gone(self):
@@ -5011,14 +5179,14 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
         reset_password_get_url = web_url_for(
             'reset_password_get',
             uid=user._id,
-            token=osf_key_v2['token']
+            token=osf_key_v2['token'],
         )
         res = self.app.get(
             reset_password_get_url,
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 
@@ -5033,7 +5201,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 
@@ -5050,7 +5218,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 
@@ -5068,7 +5236,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 
@@ -5082,7 +5250,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
         user = project.add_unregistered_contributor(
             fullname=given_name,
             email=given_email,
-            auth=Auth(user=referrer)
+            auth=Auth(user=referrer),
         )
         project.save()
 
@@ -5092,7 +5260,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 
@@ -5105,7 +5273,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
         pending_user = project.add_unregistered_contributor(
             fullname=auth_user.fullname,
             email=None,
-            auth=Auth(user=referrer)
+            auth=Auth(user=referrer),
         )
         project.save()
         claim_url = pending_user.get_claim_url(project._primary_key)
@@ -5115,7 +5283,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 
@@ -5125,8 +5293,8 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
         provider_id = fake.ean()
         external_identity = {
             'service': {
-                provider_id: 'CREATE'
-            }
+                provider_id: 'CREATE',
+            },
         }
         user = OSFUser.create_unconfirmed(
             username=email,
@@ -5138,7 +5306,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
         create_url = user.get_confirmation_url(
             user.username,
             external_id_provider='service',
-            destination='dashboard'
+            destination='dashboard',
         )
 
         res = self.app.get(
@@ -5146,7 +5314,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 
@@ -5157,8 +5325,8 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
         provider_id = fake.ean()
         user.external_identity = {
             'service': {
-                provider_id: 'LINK'
-            }
+                provider_id: 'LINK',
+            },
         }
         user.add_unconfirmed_email(user.username, external_identity='service')
         user.save()
@@ -5166,7 +5334,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
         link_url = user.get_confirmation_url(
             user.username,
             external_id_provider='service',
-            destination='dashboard'
+            destination='dashboard',
         )
 
         res = self.app.get(
@@ -5174,7 +5342,7 @@ class TestConfirmationViewBlockBingPreview(OsfTestCase):
             expect_errors=True,
             headers={
                 'User-Agent': self.user_agent,
-            }
+            },
         )
         assert_equal(res.status_code, 403)
 

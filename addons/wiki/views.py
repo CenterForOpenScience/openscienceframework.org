@@ -94,7 +94,7 @@ def _get_wiki_pages_latest(node):
             'name': page.wiki_page.page_name,
             'url': node.web_url_for('project_wiki_view', wname=page.wiki_page.page_name, _guid=True),
             'wiki_id': page.wiki_page._primary_key,
-            'wiki_content': _wiki_page_content(page.wiki_page.page_name, node=node)
+            'wiki_content': _wiki_page_content(page.wiki_page.page_name, node=node),
         }
         for page in WikiPage.objects.get_wiki_pages_latest(node).order_by(F('name'))
     ]
@@ -106,7 +106,7 @@ def _get_wiki_api_urls(node, name, additional_urls=None):
         'rename': node.api_url_for('project_wiki_rename', wname=name),
         'content': node.api_url_for('wiki_page_content', wname=name),
         'settings': node.api_url_for('edit_wiki_settings'),
-        'grid': node.api_url_for('project_wiki_grid_data', wname=name)
+        'grid': node.api_url_for('project_wiki_grid_data', wname=name),
     }
     if additional_urls:
         urls.update(additional_urls)
@@ -143,7 +143,7 @@ def _wiki_page_content(wname, wver=None, **kwargs):
     wiki_version = WikiVersion.objects.get_for_node(node, wname, wver)
     return {
         'wiki_content': wiki_version.content if wiki_version else '',
-        'rendered_before_update': wiki_version.rendered_before_update if wiki_version else False
+        'rendered_before_update': wiki_version.rendered_before_update if wiki_version else False,
     }
 
 @must_be_valid_project
@@ -274,10 +274,12 @@ def project_wiki_view(auth, wname, path=None, **kwargs):
         'panels_used': panels_used,
         'num_columns': num_columns,
         'urls': {
-            'api': _get_wiki_api_urls(node, wiki_name, {
-                'content': node.api_url_for('wiki_page_content', wname=wiki_name),
-                'draft': node.api_url_for('wiki_page_draft', wname=wiki_name),
-            }),
+            'api': _get_wiki_api_urls(
+                node, wiki_name, {
+                    'content': node.api_url_for('wiki_page_content', wname=wiki_name),
+                    'draft': node.api_url_for('wiki_page_draft', wname=wiki_name),
+                },
+            ),
             'web': _get_wiki_web_urls(node, wiki_name),
             'profile_image': get_profile_image_url(auth.user, 25),
         },
@@ -463,7 +465,7 @@ def project_wiki_grid_data(auth, node, **kwargs):
         'title': 'Project Wiki Pages',
         'kind': 'folder',
         'type': 'heading',
-        'children': format_project_wiki_pages(node, auth)
+        'children': format_project_wiki_pages(node, auth),
     }
     pages.append(project_wiki_pages)
 
@@ -471,7 +473,7 @@ def project_wiki_grid_data(auth, node, **kwargs):
         'title': 'Component Wiki Pages',
         'kind': 'folder',
         'type': 'heading',
-        'children': format_component_wiki_pages(node, auth)
+        'children': format_component_wiki_pages(node, auth),
     }
     if len(component_wiki_pages['children']) > 0:
         pages.append(component_wiki_pages)
@@ -486,7 +488,7 @@ def format_home_wiki_page(node):
             'url': node.web_url_for('project_wiki_home'),
             'name': 'Home',
             'id': 'None',
-        }
+        },
     }
     if home_wiki:
         home_wiki_page = {
@@ -494,7 +496,7 @@ def format_home_wiki_page(node):
                 'url': node.web_url_for('project_wiki_view', wname='home', _guid=True),
                 'name': 'Home',
                 'id': home_wiki._primary_key,
-            }
+            },
         }
     return home_wiki_page
 
@@ -513,7 +515,7 @@ def format_project_wiki_pages(node, auth):
                     'url': wiki_page['url'],
                     'name': wiki_page['name'],
                     'id': wiki_page['wiki_id'],
-                }
+                },
             }
             if can_edit or has_content:
                 pages.append(page)
@@ -523,8 +525,10 @@ def format_project_wiki_pages(node, auth):
 def format_component_wiki_pages(node, auth):
     pages = []
     for node in node.get_nodes(is_deleted=False):
-        if any([not node.can_view(auth),
-                not node.has_addon('wiki')]):
+        if any([
+            not node.can_view(auth),
+            not node.has_addon('wiki'),
+        ]):
             continue
         else:
             serialized = serialize_component_wiki(node, auth)
@@ -542,8 +546,8 @@ def serialize_component_wiki(node, auth):
             'url': url,
             'name': 'Home',
             # Handle pointers
-            'id': node._id
-        }
+            'id': node._id,
+        },
     }
 
     can_edit = node.has_permission(auth.user, WRITE) and not node.is_registration
@@ -558,7 +562,7 @@ def serialize_component_wiki(node, auth):
                     'url': page['url'],
                     'name': page['name'],
                     'id': page['wiki_id'],
-                }
+                },
             }
             if can_edit or has_content:
                 children.append(component_page)

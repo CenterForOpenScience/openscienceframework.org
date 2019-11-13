@@ -66,8 +66,10 @@ class TestMeetingSubmissionsDetail:
         pc.save()
         return pc
 
-    def test_meeting_submission_detail(self, app, user, meeting, base_url, meeting_one_submission,
-            meeting_one_private_submission, random_project, meeting_submission_no_category, file):
+    def test_meeting_submission_detail(
+        self, app, user, meeting, base_url, meeting_one_submission,
+        meeting_one_private_submission, random_project, meeting_submission_no_category, file,
+    ):
 
         # test_get_poster_submission
         url = '{}{}/'.format(base_url, meeting_one_submission._id)

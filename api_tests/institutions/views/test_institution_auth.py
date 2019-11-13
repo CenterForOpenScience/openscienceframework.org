@@ -21,8 +21,10 @@ def make_user(username, fullname):
     return UserFactory(username=username, fullname=fullname)
 
 
-def make_payload(institution, username, fullname='Fake User', given_name='', family_name=''):
-
+def make_payload(
+        institution, username, fullname='Fake User',
+        given_name='', family_name='',
+):
     data = {
         'provider': {
             'id': institution._id,
@@ -32,21 +34,17 @@ def make_payload(institution, username, fullname='Fake User', given_name='', fam
                 'givenName': given_name,
                 'fullname': fullname,
                 'suffix': '',
-                'username': username
-            }
-        }
+                'username': username,
+            },
+        },
     }
-
     return jwe.encrypt(
         jwt.encode(
             {
                 'sub': username,
-                'data': json.dumps(data)
-            },
-            settings.JWT_SECRET,
-            algorithm='HS256'
-        ),
-        settings.JWE_SECRET
+                'data': json.dumps(data),
+            }, settings.JWT_SECRET, algorithm='HS256',
+        ), settings.JWE_SECRET,
     )
 
 
@@ -71,7 +69,11 @@ class TestInstitutionAuth:
         assert OSFUser.objects.filter(username=username).count() == 0
 
         with capture_signals() as mock_signals:
-            res = app.post(url_auth_institution, make_payload(institution, username))
+            res = app.post(
+                url_auth_institution,
+                make_payload(institution, username),
+            )
+
         assert res.status_code == 204
         assert mock_signals.signals_sent() == set([signals.user_confirmed])
 
@@ -88,7 +90,11 @@ class TestInstitutionAuth:
         user.save()
 
         with capture_signals() as mock_signals:
-            res = app.post(url_auth_institution, make_payload(institution, username))
+            res = app.post(
+                url_auth_institution,
+                make_payload(institution, username),
+            )
+
         assert res.status_code == 204
         assert not mock_signals.signals_sent()
 
@@ -103,8 +109,10 @@ class TestInstitutionAuth:
         user.affiliated_institutions.add(institution)
         user.save()
 
-        with capture_signals() as mock_signals:
-            res = app.post(url_auth_institution, make_payload(institution, username))
+        res = app.post(
+            url_auth_institution,
+            make_payload(institution, username),
+        )
         assert res.status_code == 204
         assert not mock_signals.signals_sent()
 
@@ -117,15 +125,20 @@ class TestInstitutionAuth:
         username = 'user_created_without_names@osf.edu'
         res = app.post(
             url_auth_institution,
-            make_payload(institution, username, fullname=''),
-            expect_errors=True
+            'al;kjasdfljadf',
+            expect_errors=True,
         )
         assert res.status_code == 403
 
-        user = OSFUser.objects.filter(username=username).first()
-        assert not user
-
-    def test_new_user_names_guessed_if_not_provided(self, app, institution, url_auth_institution):
+    def test_user_names_guessed_if_not_provided(
+            self, app, institution, url_auth_institution,
+    ):
+        # Regression for https://openscience.atlassian.net/browse/OSF-7212
+        username = 'fake@user.edu'
+        res = app.post(
+            url_auth_institution,
+            make_payload(institution, username),
+        )
 
         username = 'user_created_with_fullname_only@osf.edu'
         res = app.post(url_auth_institution, make_payload(institution, username))
@@ -138,63 +151,19 @@ class TestInstitutionAuth:
         assert user.given_name == 'Fake'
         assert user.family_name == 'User'
 
-    def test_new_user_names_used_when_provided(self, app, institution, url_auth_institution):
-
-        username = 'user_created_with_names@osf.edu'
+    def test_user_names_used_when_provided(
+            self, app, institution, url_auth_institution,
+    ):
+        # Regression for https://openscience.atlassian.net/browse/OSF-7212
+        username = 'fake@user.edu'
         res = app.post(
             url_auth_institution,
-            make_payload(institution, username, given_name='Foo', family_name='Bar')
-        )
-        assert res.status_code == 204
-
-        user = OSFUser.objects.filter(username=username).first()
-        assert user
-        assert user.fullname == 'Fake User'
-        # Given name and family name are set instead of guessed
-        assert user.given_name == 'Foo'
-        assert user.family_name == 'Bar'
-
-    def test_user_active(self, app, institution, url_auth_institution):
-
-        username, fullname, password = 'user_active@user.edu', 'Foo Bar', 'FuAsKeEr'
-        user = make_user(username, fullname)
-        user.set_password(password)
-        user.save()
-
-        with capture_signals() as mock_signals:
-            res = app.post(
-                url_auth_institution,
-                make_payload(
-                    institution,
-                    username,
-                    family_name='User',
-                    given_name='Fake',
-                    fullname='Fake User'
-                )
-            )
-        assert res.status_code == 204
-        assert not mock_signals.signals_sent()
-
-        user = OSFUser.objects.filter(username=username).first()
-        assert user
-        # User names remains untouched
-        assert user.fullname == fullname
-        assert user.family_name == 'Bar'
-        assert user.given_name == 'Foo'
-        # Existing active user keeps their password
-        assert user.has_usable_password()
-        assert user.check_password(password)
-        # Confirm affiliation
-        assert institution in user.affiliated_institutions.all()
-
-    def test_user_unclaimed(self, app, institution, url_auth_institution):
-
-        username, fullname = 'user_nclaimed@user.edu', 'Foo Bar'
-        project = ProjectFactory()
-        user = project.add_unregistered_contributor(
-            fullname=fullname,
-            email=username,
-            auth=Auth(project.creator)
+            make_payload(
+                institution,
+                username,
+                family_name='West',
+                given_name='Kanye',
+            ),
         )
         user.save()
         # Unclaimed user is given an unusable password when being added as a contributor

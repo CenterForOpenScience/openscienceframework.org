@@ -6,8 +6,10 @@ import responses
 from addons.base.tests.base import OAuthAddonTestCaseMixin
 from framework.auth import Auth
 from framework.exceptions import HTTPError
-from nose.tools import (assert_equal, assert_false, assert_in, assert_is_none,
-                        assert_not_equal, assert_raises, assert_true)
+from nose.tools import (
+    assert_equal, assert_false, assert_in, assert_is_none,
+    assert_not_equal, assert_raises, assert_true,
+)
 from osf_tests.factories import AuthUserFactory, ProjectFactory
 from osf.utils import permissions
 from website.util import api_url_for, web_url_for
@@ -22,7 +24,7 @@ class OAuthAddonAuthViewsTestCaseMixin(OAuthAddonTestCaseMixin):
     def test_oauth_start(self):
         url = api_url_for(
             'oauth_connect',
-            service_name=self.ADDON_SHORT_NAME
+            service_name=self.ADDON_SHORT_NAME,
         )
         res = self.app.get(url, auth=self.user.auth)
         assert res.status_code == http_status.HTTP_302_FOUND
@@ -38,7 +40,7 @@ class OAuthAddonAuthViewsTestCaseMixin(OAuthAddonTestCaseMixin):
     def test_oauth_finish(self):
         url = web_url_for(
             'oauth_callback',
-            service_name=self.ADDON_SHORT_NAME
+            service_name=self.ADDON_SHORT_NAME,
         )
         with mock.patch.object(self.Provider, 'auth_callback') as mock_callback:
             mock_callback.return_value = True
@@ -50,7 +52,7 @@ class OAuthAddonAuthViewsTestCaseMixin(OAuthAddonTestCaseMixin):
     def test_delete_external_account(self):
         url = api_url_for(
             'oauth_disconnect',
-            external_account_id=self.external_account._id
+            external_account_id=self.external_account._id,
         )
         res = self.app.delete(url, auth=self.user.auth)
         assert_equal(res.status_code, http_status.HTTP_200_OK)
@@ -63,7 +65,7 @@ class OAuthAddonAuthViewsTestCaseMixin(OAuthAddonTestCaseMixin):
         other_user = AuthUserFactory()
         url = api_url_for(
             'oauth_disconnect',
-            external_account_id=self.external_account._id
+            external_account_id=self.external_account._id,
         )
         res = self.app.delete(url, auth=other_user.auth, expect_errors=True)
         assert_equal(res.status_code, http_status.HTTP_403_FORBIDDEN)
@@ -142,7 +144,7 @@ class OAuthAddonConfigViewsTestCaseMixin(OAuthAddonTestCaseMixin):
         self.project.reload()
         assert_equal(
             self.project.logs.latest().action,
-            '{0}_folder_selected'.format(self.ADDON_SHORT_NAME)
+            '{0}_folder_selected'.format(self.ADDON_SHORT_NAME),
         )
         assert_equal(res.json['result']['folder']['path'], self.folder['path'])
 
@@ -155,7 +157,7 @@ class OAuthAddonConfigViewsTestCaseMixin(OAuthAddonTestCaseMixin):
         serialized = self.Serializer().serialize_settings(
             self.node_settings,
             self.user,
-            self.client
+            self.client,
         )
         assert_equal(serialized, res.json['result'])
 
@@ -240,7 +242,7 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
         super(OAuthCitationAddonConfigViewsTestCaseMixin, self).setUp()
         self.mock_verify = mock.patch.object(
             self.client,
-            '_verify_client_validity'
+            '_verify_client_validity',
         )
         self.mock_verify.start()
 
@@ -260,7 +262,7 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
             self.project.reload()
             assert_equal(
                 self.project.logs.latest().action,
-                '{0}_folder_selected'.format(self.ADDON_SHORT_NAME)
+                '{0}_folder_selected'.format(self.ADDON_SHORT_NAME),
             )
             assert_equal(res.json['result']['folder']['name'], self.folder.name)
 
@@ -276,7 +278,7 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
             result = res.json['result']
             serialized = self.Serializer(
                 node_settings=self.node_settings,
-                user_settings=self.node_settings.user_settings
+                user_settings=self.node_settings.user_settings,
             ).serialized_node_settings
             serialized['validCredentials'] = self.citationsProvider().check_credentials(self.node_settings)
             assert_equal(serialized, result)
@@ -306,7 +308,7 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
             self.user,
             self.folder.json['id'],
             self.folder.name,
-            Auth(self.user)
+            Auth(self.user),
         )
         assert_true(self.node_settings.complete)
         assert_equal(self.node_settings.list_id, 'Fake Key')
@@ -336,13 +338,13 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
                 responses.GET,
                 self.foldersApiUrl,
                 body=self.mockResponses['folders'],
-                content_type='application/json'
-            )
+                content_type='application/json',
+            ),
         )
 
         res = self.app.get(
             self.project.api_url_for('{0}_citation_list'.format(self.ADDON_SHORT_NAME)),
-            auth=self.user.auth
+            auth=self.user.auth,
         )
         root = res.json['contents'][0]
         assert_equal(root['kind'], 'folder')
@@ -357,8 +359,8 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
                 responses.GET,
                 self.foldersApiUrl,
                 body=self.mockResponses['folders'],
-                content_type='application/json'
-            )
+                content_type='application/json',
+            ),
         )
 
         responses.add(
@@ -366,13 +368,13 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
                 responses.GET,
                 self.documentsApiUrl,
                 body=self.mockResponses['documents'],
-                content_type='application/json'
-            )
+                content_type='application/json',
+            ),
         )
 
         res = self.app.get(
             self.project.api_url_for('{0}_citation_list'.format(self.ADDON_SHORT_NAME), list_id='ROOT'),
-            auth=self.user.auth
+            auth=self.user.auth,
         )
 
         children = res.json['contents']
@@ -394,8 +396,8 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
                 responses.GET,
                 self.foldersApiUrl,
                 body=self.mockResponses['folders'],
-                content_type='application/json'
-            )
+                content_type='application/json',
+            ),
         )
 
         responses.add(
@@ -403,13 +405,13 @@ class OAuthCitationAddonConfigViewsTestCaseMixin(OAuthAddonConfigViewsTestCaseMi
                 responses.GET,
                 self.documentsApiUrl,
                 body=self.mockResponses['documents'],
-                content_type='application/json'
-            )
+                content_type='application/json',
+            ),
         )
 
         res = self.app.get(
             self.project.api_url_for('{0}_citation_list'.format(self.ADDON_SHORT_NAME), list_id='ROOT'),
             auth=non_authorizing_user.auth,
-            expect_errors=True
+            expect_errors=True,
         )
         assert_equal(res.status_code, http_status.HTTP_403_FORBIDDEN)

@@ -209,7 +209,7 @@ class TestPreprintView:
         new_provider = PreprintProviderFactory()
         plain_view.kwargs = {'guid': preprint._id}
         form_data = {
-            'provider': new_provider.id
+            'provider': new_provider.id,
         }
         form = ChangeProviderForm(data=form_data, instance=preprint)
         plain_view().form_valid(form)
@@ -248,8 +248,10 @@ class TestPreprintView:
         """ Testing that subjects are changed when providers are changed between two custom taxonomies.
         """
 
-        subject_two = SubjectFactory(provider=provider_two,
-            bepress_subject=subject_one.bepress_subject)
+        subject_two = SubjectFactory(
+            provider=provider_two,
+            bepress_subject=subject_one.bepress_subject,
+        )
 
         preprint = PreprintFactory(subjects=[[subject_one._id]], provider=provider_one, creator=preprint_user)
         request = RequestFactory().post(reverse('preprints:preprint', kwargs={'guid': preprint._id}), data={'provider': provider_two.id})
@@ -265,8 +267,10 @@ class TestPreprintView:
         """ Testing that subjects are changed when a provider is changed from osf using the bepress subject id of the new subject.
         """
 
-        subject_two = SubjectFactory(provider=provider_one,
-            bepress_subject=subject_osf)
+        subject_two = SubjectFactory(
+            provider=provider_one,
+            bepress_subject=subject_osf,
+        )
 
         preprint = PreprintFactory(subjects=[[subject_osf._id]], provider=provider_osf, creator=preprint_user)
         request = RequestFactory().post(reverse('preprints:preprint', kwargs={'guid': preprint._id}), data={'provider': provider_one.id})
@@ -282,8 +286,10 @@ class TestPreprintView:
         """ Testing that subjects are changed when providers are changed to osf using the bepress subject id of the old subject
         """
 
-        subject_one = SubjectFactory(provider=provider_one,
-            bepress_subject=subject_osf)
+        subject_one = SubjectFactory(
+            provider=provider_one,
+            bepress_subject=subject_osf,
+        )
 
         preprint = PreprintFactory(subjects=[[subject_one._id]], provider=provider_one, creator=preprint_user)
 
@@ -411,8 +417,10 @@ class TestPreprintDeleteView(AdminTestCase):
         self.preprint = PreprintFactory(creator=self.user)
         self.request = RequestFactory().post('/fake_path')
         self.plain_view = views.PreprintDeleteView
-        self.view = setup_log_view(self.plain_view(), self.request,
-                                   guid=self.preprint._id)
+        self.view = setup_log_view(
+            self.plain_view(), self.request,
+            guid=self.preprint._id,
+        )
 
         self.url = reverse('preprints:remove', kwargs={'guid': self.preprint._id})
 
@@ -479,8 +487,10 @@ class TestRemoveContributor(AdminTestCase):
         self.url = reverse('preprints:remove_user', kwargs={'guid': self.preprint._id, 'user_id': self.user._id})
 
     def test_get_object(self):
-        view = setup_log_view(self.view(), self.request, guid=self.preprint._id,
-                              user_id=self.user._id)
+        view = setup_log_view(
+            self.view(), self.request, guid=self.preprint._id,
+            user_id=self.user._id,
+        )
         preprint, user = view.get_object()
         assert isinstance(preprint, Preprint)
         assert isinstance(user, OSFUser)
@@ -489,15 +499,19 @@ class TestRemoveContributor(AdminTestCase):
     def test_remove_contributor(self, mock_remove_contributor):
         user_id = self.user_2._id
         preprint_id = self.preprint._id
-        view = setup_log_view(self.view(), self.request, guid=preprint_id,
-                              user_id=user_id)
+        view = setup_log_view(
+            self.view(), self.request, guid=preprint_id,
+            user_id=user_id,
+        )
         view.delete(self.request)
         mock_remove_contributor.assert_called_with(self.user_2, None, log=False)
 
     def test_integration_remove_contributor(self):
         assert self.user_2 in self.preprint.contributors
-        view = setup_log_view(self.view(), self.request, guid=self.preprint._id,
-                              user_id=self.user_2._id)
+        view = setup_log_view(
+            self.view(), self.request, guid=self.preprint._id,
+            user_id=self.user_2._id,
+        )
         count = AdminLogEntry.objects.count()
         view.delete(self.request)
         assert self.user_2 not in self.preprint.contributors
@@ -505,8 +519,10 @@ class TestRemoveContributor(AdminTestCase):
 
     def test_do_not_remove_last_admin(self):
         assert len(list(self.preprint.get_admin_contributors(self.preprint.contributors))) == 1
-        view = setup_log_view(self.view(), self.request, guid=self.preprint._id,
-                              user_id=self.user._id)
+        view = setup_log_view(
+            self.view(), self.request, guid=self.preprint._id,
+            user_id=self.user._id,
+        )
         count = AdminLogEntry.objects.count()
         view.delete(self.request)
         self.preprint.reload()  # Reloads instance to show that nothing was removed
@@ -515,8 +531,10 @@ class TestRemoveContributor(AdminTestCase):
         assert AdminLogEntry.objects.count() == count
 
     def test_no_log(self):
-        view = setup_log_view(self.view(), self.request, guid=self.preprint._id,
-                              user_id=self.user_2._id)
+        view = setup_log_view(
+            self.view(), self.request, guid=self.preprint._id,
+            user_id=self.user_2._id,
+        )
         view.delete(self.request)
         assert self.preprint.logs.latest().action != PreprintLog.CONTRIB_REMOVED
 
@@ -654,9 +672,12 @@ class TestPreprintWithdrawalRequests:
         response = views.PreprintWithdrawalRequestList.as_view()(request)
         assert response.status_code == 200
 
-    @pytest.mark.parametrize('intent, final_state', [
-        ('approveRequest', DefaultStates.ACCEPTED.value),
-        ('rejectRequest', DefaultStates.REJECTED.value)])
+    @pytest.mark.parametrize(
+        'intent, final_state', [
+            ('approveRequest', DefaultStates.ACCEPTED.value),
+            ('rejectRequest', DefaultStates.REJECTED.value),
+        ],
+    )
     def test_approve_reject_on_list_view(self, withdrawal_request, admin, intent, final_state):
         assert withdrawal_request.machine_state == DefaultStates.PENDING.value
         original_comment = withdrawal_request.comment

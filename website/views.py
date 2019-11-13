@@ -181,11 +181,12 @@ def my_projects(auth):
 
     bookmark_collection = find_bookmark_collection(user)
     my_projects_id = bookmark_collection._id
-    return {'addons_enabled': user.get_addon_names(),
-            'dashboard_id': my_projects_id,
-            'storage_regions': region_list,
-            'storage_flag_is_active': storage_i18n_flag_active(),
-            }
+    return {
+        'addons_enabled': user.get_addon_names(),
+        'dashboard_id': my_projects_id,
+        'storage_regions': region_list,
+        'storage_flag_is_active': storage_i18n_flag_active(),
+    }
 
 
 def validate_page_num(page, pages):
@@ -258,7 +259,7 @@ def resolve_guid(guid, suffix=None):
         #   expected.
         if not hasattr(guid_object.referent, 'deep_url'):
             sentry.log_message(
-                'Guid resolved to an object with no deep_url', dict(guid=guid)
+                'Guid resolved to an object with no deep_url', dict(guid=guid),
             )
             raise HTTPError(http_status.HTTP_404_NOT_FOUND)
         referent = guid_object.referent
@@ -335,7 +336,7 @@ def resolve_guid(guid, suffix=None):
     guid_object_lower = Guid.load(guid.lower())
     if guid_object_lower:
         return redirect(
-            _build_guid_url(guid.lower(), suffix)
+            _build_guid_url(guid.lower(), suffix),
         )
 
     # GUID not found
@@ -379,8 +380,8 @@ def legacy_share_v1_search(**kwargs):
     return HTTPError(
         http_status.HTTP_400_BAD_REQUEST,
         data=dict(
-            message_long='Please use v2 of the SHARE search API available at {}api/v2/share/search/creativeworks/_search.'.format(settings.SHARE_URL)
-        )
+            message_long='Please use v2 of the SHARE search API available at {}api/v2/share/search/creativeworks/_search.'.format(settings.SHARE_URL),
+        ),
     )
 
 

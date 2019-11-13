@@ -119,7 +119,7 @@ def reset_password_post(uid=None, token=None):
             return redirect(cas.get_login_url(
                 web_url_for('user_account', _absolute=True),
                 username=user_obj.username,
-                verification_key=user_obj.verification_key
+                verification_key=user_obj.verification_key,
             ))
 
     return {
@@ -163,9 +163,11 @@ def forgot_password_post():
         forms.push_errors_to_status(form.errors)
     else:
         email = form.email.data
-        status_message = ('If there is an OSF account associated with {0}, an email with instructions on how to '
-                          'reset the OSF password has been sent to {0}. If you do not receive an email and believe '
-                          'you should have, please contact OSF Support. ').format(email)
+        status_message = (
+            'If there is an OSF account associated with {0}, an email with instructions on how to '
+            'reset the OSF password has been sent to {0}. If you do not receive an email and believe '
+            'you should have, please contact OSF Support. '
+        ).format(email)
         kind = 'success'
         # check if the user exists
         user_obj = get_user(email=email)
@@ -186,8 +188,8 @@ def forgot_password_post():
                     web_url_for(
                         'reset_password_get',
                         uid=user_obj._id,
-                        token=user_obj.verification_key_v2['token']
-                    )
+                        token=user_obj.verification_key_v2['token'],
+                    ),
                 )
                 mails.send_mail(
                     to_addr=email,
@@ -257,7 +259,7 @@ def login_and_register_handler(auth, login=True, campaign=None, next_url=None, l
                             data['next_url'] = web_url_for(
                                 'auth_login',
                                 next=destination,
-                                _absolute=True
+                                _absolute=True,
                             )
                         else:
                             data['next_url'] = destination
@@ -268,7 +270,7 @@ def login_and_register_handler(auth, login=True, campaign=None, next_url=None, l
             data['next_url'] = web_url_for(redirect_view, campaigns=None, next=next_url)
             data['campaign'] = None
             sentry.log_message(
-                '{} is not a valid campaign. Please add it if this is a new one'.format(campaign)
+                '{} is not a valid campaign. Please add it if this is a new one'.format(campaign),
             )
     # login or register with next parameter
     elif next_url:
@@ -376,11 +378,13 @@ def auth_register(auth):
         context['login_url'] = destination
         # "Login through your institution" link
         context['institution_login_url'] = cas.get_login_url(data['next_url'], campaign='institution')
-        context['preprint_campaigns'] = {k._id + '-preprints': {
-            'id': k._id,
-            'name': k.name,
-            'logo_path': k.get_asset_url('square_color_no_transparent')
-        } for k in PreprintProvider.objects.all() if k._id != 'osf'}
+        context['preprint_campaigns'] = {
+            k._id + '-preprints': {
+                'id': k._id,
+                'name': k.name,
+                'logo_path': k.get_asset_url('square_color_no_transparent'),
+            } for k in PreprintProvider.objects.all() if k._id != 'osf'
+        }
         context['campaign'] = data['campaign']
         return context, http_status.HTTP_200_OK
     # redirect to url
@@ -579,7 +583,7 @@ def external_login_confirm_email_get(auth, uid, token):
     return redirect(cas.get_login_url(
         service_url,
         username=user.username,
-        verification_key=user.verification_key
+        verification_key=user.verification_key,
     ))
 
 
@@ -656,7 +660,7 @@ def confirm_email_get(token, auth=None, **kwargs):
     return redirect(cas.get_login_url(
         request.url,
         username=user.username,
-        verification_key=user.verification_key
+        verification_key=user.verification_key,
     ))
 
 
@@ -680,7 +684,7 @@ def unconfirmed_email_remove(auth=None):
     user.save()
     return {
         'status': 'success',
-        'removed_email': json_body['address']
+        'removed_email': json_body['address'],
     }, 200
 
 
@@ -715,7 +719,7 @@ def unconfirmed_email_add(auth=None):
     user.save()
     return {
         'status': 'success',
-        'removed_email': json_body['address']
+        'removed_email': json_body['address'],
     }, 200
 
 
@@ -740,7 +744,7 @@ def send_confirm_email(user, email, renew=False, external_id_provider=None, exte
         force=True,
         renew=renew,
         external_id_provider=external_id_provider,
-        destination=destination
+        destination=destination,
     )
 
     try:
@@ -788,7 +792,7 @@ def send_confirm_email(user, email, renew=False, external_id_provider=None, exte
         branded_preprints_provider=branded_preprints_provider,
         osf_support_email=settings.OSF_SUPPORT_EMAIL,
         can_change_preferences=False,
-        logo=logo if logo else settings.OSF_LOGO
+        logo=logo if logo else settings.OSF_LOGO,
     )
 
 
@@ -837,7 +841,7 @@ def register_user(**kwargs):
             request.json['password'],
             full_name,
             campaign=campaign,
-            accepted_terms_of_service=accepted_terms_of_service
+            accepted_terms_of_service=accepted_terms_of_service,
         )
         framework_auth.signals.user_registered.send(user)
     except (ValidationValueError, DuplicateEmailError):
@@ -845,9 +849,9 @@ def register_user(**kwargs):
             http_status.HTTP_409_CONFLICT,
             data=dict(
                 message_long=language.ALREADY_REGISTERED.format(
-                    email=markupsafe.escape(request.json['email1'])
-                )
-            )
+                    email=markupsafe.escape(request.json['email1']),
+                ),
+            ),
         )
     except BlacklistedEmailError:
         raise HTTPError(
@@ -901,9 +905,11 @@ def resend_confirmation_post(auth):
     if form.validate():
         clean_email = form.email.data
         user = get_user(email=clean_email)
-        status_message = ('If there is an OSF account associated with this unconfirmed email address {0}, '
-                          'a confirmation email has been resent to it. If you do not receive an email and believe '
-                          'you should have, please contact OSF Support.').format(clean_email)
+        status_message = (
+            'If there is an OSF account associated with this unconfirmed email address {0}, '
+            'a confirmation email has been resent to it. If you do not receive an email and believe '
+            'you should have, please contact OSF Support.'
+        ).format(clean_email)
         kind = 'success'
         if user:
             if throttle_period_expired(user.email_last_sent, settings.SEND_EMAIL_THROTTLE):
@@ -916,8 +922,10 @@ def resend_confirmation_post(auth):
                 user.email_last_sent = timezone.now()
                 user.save()
             else:
-                status_message = ('You have recently requested to resend your confirmation email. '
-                                 'Please wait a few minutes before trying again.')
+                status_message = (
+                    'You have recently requested to resend your confirmation email. '
+                    'Please wait a few minutes before trying again.'
+                )
                 kind = 'error'
         status.push_status_message(status_message, kind=kind, trust=False)
     else:
@@ -1015,12 +1023,12 @@ def external_login_email_post():
                 clean_email,
                 external_id_provider=external_id_provider,
                 external_id=external_id,
-                destination=destination
+                destination=destination,
             )
             # 3. notify user
             message = language.EXTERNAL_LOGIN_EMAIL_LINK_SUCCESS.format(
                 external_id_provider=external_id_provider,
-                email=user.username
+                email=user.username,
             )
             kind = 'success'
             # 4. remove session and osf cookie
@@ -1035,7 +1043,7 @@ def external_login_email_post():
                 fullname=fullname,
                 external_identity=external_identity,
                 campaign=None,
-                accepted_terms_of_service=accepted_terms_of_service
+                accepted_terms_of_service=accepted_terms_of_service,
             )
             # TODO: [#OSF-6934] update social fields, verified social fields cannot be modified
             user.save()
@@ -1045,12 +1053,12 @@ def external_login_email_post():
                 user.username,
                 external_id_provider=external_id_provider,
                 external_id=external_id,
-                destination=destination
+                destination=destination,
             )
             # 4. notify user
             message = language.EXTERNAL_LOGIN_EMAIL_CREATE_SUCCESS.format(
                 external_id_provider=external_id_provider,
-                email=user.username
+                email=user.username,
             )
             kind = 'success'
             # 5. remove session
@@ -1063,7 +1071,7 @@ def external_login_email_post():
     return {
         'form': form,
         'external_id_provider': external_id_provider,
-        'auth_user_fullname': fullname
+        'auth_user_fullname': fullname,
     }
 
 

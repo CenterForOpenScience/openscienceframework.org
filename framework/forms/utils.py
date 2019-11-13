@@ -45,8 +45,8 @@ def jsonify(form):
                 'id': field.id,
                 'label': str(field.label),
                 'html': str(field),
-                'description': str(field.description)
+                'description': str(field.description),
             }
             for field in form
-        ]
+        ],
     }

@@ -21,7 +21,7 @@ from osf.models import FileVersion, OSFUser
 from osf.utils.permissions import WRITE
 from osf.utils.requests import check_select_for_update
 from website.project.decorators import (
-    must_not_be_registration, must_have_permission
+    must_not_be_registration, must_have_permission,
 )
 from website.project.model import has_anonymous_link
 
@@ -117,7 +117,7 @@ def osfstorage_get_revisions(file_node, payload, target, **kwargs):
         'revisions': [
             utils.serialize_revision(target, file_node, version, index=version_count - idx - 1, anon=is_anon)
             for idx, version in enumerate(qs)
-        ]
+        ],
     }
 
 
@@ -134,13 +134,17 @@ def osfstorage_move_hook(source, destination, name=None, **kwargs):
     try:
         ret = source.move_under(destination, name=name).serialize(), http_status.HTTP_200_OK
     except exceptions.FileNodeCheckedOutError:
-        raise HTTPError(http_status.HTTP_405_METHOD_NOT_ALLOWED, data={
-            'message_long': 'Cannot move file as it is checked out.'
-        })
+        raise HTTPError(
+            http_status.HTTP_405_METHOD_NOT_ALLOWED, data={
+                'message_long': 'Cannot move file as it is checked out.',
+            },
+        )
     except exceptions.FileNodeIsPrimaryFile:
-        raise HTTPError(http_status.HTTP_403_FORBIDDEN, data={
-            'message_long': 'Cannot move file as it is the primary file of preprint.'
-        })
+        raise HTTPError(
+            http_status.HTTP_403_FORBIDDEN, data={
+                'message_long': 'Cannot move file as it is the primary file of preprint.',
+            },
+        )
 
     # once the move is complete recalculate storage for both targets if it's a inter-target move.
     if source_target != destination.target:
@@ -181,7 +185,8 @@ def osfstorage_get_children(file_node, **kwargs):
     user_pk = OSFUser.objects.filter(guids___id=user_id, guids___id__isnull=False).values_list('pk', flat=True).first()
     with connection.cursor() as cursor:
         # Read the documentation on FileVersion's fields before reading this code
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT json_agg(CASE
                 WHEN F.type = 'osf.osfstoragefile' THEN
                     json_build_object(
@@ -269,14 +274,15 @@ def osfstorage_get_children(file_node, **kwargs):
             WHERE parent_id = %s
             AND (NOT F.type IN ('osf.trashedfilenode', 'osf.trashedfile', 'osf.trashedfolder'))
         """, [
-            user_content_type_id,
-            file_node.target.guids.first().id,
-            user_pk,
-            user_pk,
-            user_id,
-            user_id,
-            file_node.id
-        ])
+                user_content_type_id,
+                file_node.target.guids.first().id,
+                user_pk,
+                user_pk,
+                user_id,
+                user_id,
+                file_node.id,
+            ],
+        )
         return cursor.fetchone()[0] or []
 
 
@@ -294,7 +300,7 @@ def osfstorage_create_child(file_node, payload, **kwargs):
             data={
                 'message_short': 'Registered Nodes are immutable',
                 'message_long': "The operation you're trying to do cannot be applied to registered Nodes, which are immutable",
-            }
+            },
         )
 
     if not (name or user) or '/' in name:
@@ -315,27 +321,33 @@ def osfstorage_create_child(file_node, payload, **kwargs):
         created, file_node = False, parent.find_child_by_name(name, kind=int(not is_folder))
 
     if not created and is_folder:
-        raise HTTPError(http_status.HTTP_409_CONFLICT, data={
-            'message_long': 'Cannot create folder "{name}" because a file or folder already exists at path "{path}"'.format(
-                name=file_node.name,
-                path=file_node.materialized_path,
-            )
-        })
+        raise HTTPError(
+            http_status.HTTP_409_CONFLICT, data={
+                'message_long': 'Cannot create folder "{name}" because a file or folder already exists at path "{path}"'.format(
+                    name=file_node.name,
+                    path=file_node.materialized_path,
+                ),
+            },
+        )
 
     if file_node.checkout and file_node.checkout._id != user._id:
-        raise HTTPError(http_status.HTTP_403_FORBIDDEN, data={
-            'message_long': 'File cannot be updated due to checkout status.'
-        })
+        raise HTTPError(
+            http_status.HTTP_403_FORBIDDEN, data={
+                'message_long': 'File cannot be updated due to checkout status.',
+            },
+        )
 
     if not is_folder:
         try:
             metadata = dict(payload['metadata'], **payload['hashes'])
-            location = dict(payload['settings'], **dict(
-                payload['worker'], **{
-                    'object': payload['metadata']['name'],
-                    'service': payload['metadata']['provider'],
-                }
-            ))
+            location = dict(
+                payload['settings'], **dict(
+                    payload['worker'], **{
+                        'object': payload['metadata']['name'],
+                        'service': payload['metadata']['provider'],
+                    }
+                )
+            )
         except KeyError:
             raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
 
@@ -378,9 +390,11 @@ def osfstorage_delete(file_node, payload, target, **kwargs):
     except exceptions.FileNodeCheckedOutError:
         raise HTTPError(http_status.HTTP_403_FORBIDDEN)
     except exceptions.FileNodeIsPrimaryFile:
-        raise HTTPError(http_status.HTTP_403_FORBIDDEN, data={
-            'message_long': 'Cannot delete file as it is the primary file of preprint.'
-        })
+        raise HTTPError(
+            http_status.HTTP_403_FORBIDDEN, data={
+                'message_long': 'Cannot delete file as it is the primary file of preprint.',
+            },
+        )
 
     update_storage_usage(file_node.target)
     return {'status': 'success'}
@@ -456,6 +470,10 @@ def update_region(auth, **kwargs):
     try:
         user_settings.set_region(region_id)
     except ValueError:
-        raise HTTPError(404, data=dict(message_short='Region not found',
-                                    message_long='A storage region with this id does not exist'))
+        raise HTTPError(
+            404, data=dict(
+                message_short='Region not found',
+                message_long='A storage region with this id does not exist',
+            ),
+        )
     return {'message': 'User region updated.'}

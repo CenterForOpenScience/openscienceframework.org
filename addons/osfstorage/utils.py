@@ -32,7 +32,7 @@ def update_analytics(node, file, version_idx, action='download'):
         contributors = node.contributors
 
     node_info = {
-        'contributors': contributors
+        'contributors': contributors,
     }
     resource = node.guids.first()
 

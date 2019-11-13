@@ -214,7 +214,7 @@ class BaseFileNode(TypedModel, CommentableMixin, OptionalGuidMixin, Taggable, Ob
             # it's a file
             try:
                 file_obj = cls.objects.get(
-                    target_object_id=target.id, target_content_type=content_type, _materialized_path=materialized_path
+                    target_object_id=target.id, target_content_type=content_type, _materialized_path=materialized_path,
                 )
             except cls.DoesNotExist:
                 return guids
@@ -463,7 +463,7 @@ class BaseFileNode(TypedModel, CommentableMixin, OptionalGuidMixin, Taggable, Ob
         return '<{}(name={!r}, target={!r})>'.format(
             self.__class__.__name__,
             self.name,
-            self.target
+            self.target,
         )
 
 
@@ -496,7 +496,7 @@ class File(models.Model):
             data['modified'] = parse_date(
                 data['modified'],
                 ignoretz=True,
-                default=timezone.now()  # Just incase nothing can be parsed
+                default=timezone.now(),  # Just incase nothing can be parsed
             )
 
         # if revision is none then version is the latest version
@@ -525,25 +525,29 @@ class File(models.Model):
         newest_version = self.versions.all().last()
 
         if not newest_version:
-            return dict(self._serialize(), **{
-                'size': None,
-                'version': None,
-                'modified': None,
-                'created': None,
-                'contentType': None,
+            return dict(
+                self._serialize(), **{
+                    'size': None,
+                    'version': None,
+                    'modified': None,
+                    'created': None,
+                    'contentType': None,
+                    'downloads': self.get_download_count(),
+                    'checkout': self.checkout._id if self.checkout else None,
+                }
+            )
+
+        return dict(
+            self._serialize(), **{
+                'size': newest_version.size,
                 'downloads': self.get_download_count(),
                 'checkout': self.checkout._id if self.checkout else None,
-            })
-
-        return dict(self._serialize(), **{
-            'size': newest_version.size,
-            'downloads': self.get_download_count(),
-            'checkout': self.checkout._id if self.checkout else None,
-            'version': newest_version.identifier if newest_version else None,
-            'contentType': newest_version.content_type if newest_version else None,
-            'modified': newest_version.external_modified.isoformat() if newest_version.external_modified else None,
-            'created': self.versions.all().first().external_modified.isoformat() if self.versions.all().first().external_modified else None,
-        })
+                'version': newest_version.identifier if newest_version else None,
+                'contentType': newest_version.content_type if newest_version else None,
+                'modified': newest_version.external_modified.isoformat() if newest_version.external_modified else None,
+                'created': self.versions.all().first().external_modified.isoformat() if self.versions.all().first().external_modified else None,
+            }
+        )
 
     def restore(self, recursive=True, parent=None, save=True, deleted_on=None):
         raise UnableToRestore('You cannot restore something that is not deleted.')
@@ -560,7 +564,7 @@ class File(models.Model):
             'path': self._materialized_path,
             'hashes': self._hashes,
             'size': size,
-            'last_seen': self.last_touched
+            'last_seen': self.last_touched,
         }
 
     @property
@@ -610,7 +614,7 @@ class Folder(models.Model):
             name=name,
             target_object_id=self.target.id,
             target_content_type=target_content_type,
-            parent=self
+            parent=self,
         ).exists():
             raise IntegrityError('Child by that name already, exists, update instead')
         else:
@@ -620,7 +624,7 @@ class Folder(models.Model):
                 path=path or '/' + name,
                 parent=self,
                 materialized_path=materialized_path or
-                os.path.join(self.materialized_path, name) + '/' if kind is Folder else ''
+                os.path.join(self.materialized_path, name) + '/' if kind is Folder else '',
             )
         if save:
             child.save()
@@ -680,7 +684,7 @@ class TrashedFile(TrashedFileNode):
         return {
             'sha1': last_version.metadata['sha1'],
             'sha256': last_version.metadata['sha256'],
-            'md5': last_version.metadata['md5']
+            'md5': last_version.metadata['md5'],
         }
 
     @property
@@ -694,7 +698,7 @@ class TrashedFile(TrashedFileNode):
             'path': self.materialized_path,
             'hashes': self._hashes,
             'size': size,
-            'last_seen': self.modified
+            'last_seen': self.modified,
         }
 
 class TrashedFolder(TrashedFileNode):
@@ -806,9 +810,9 @@ class FileVersion(ObjectIDMixin, BaseModel):
             return True  # We've found ourself
 
         other = self.__class__.objects.filter(
-            metadata__sha256=self.metadata['sha256']
+            metadata__sha256=self.metadata['sha256'],
         ).exclude(
-            _id=self._id, metadata__archive__is_null=True, metadata__vault__is_null=True
+            _id=self._id, metadata__archive__is_null=True, metadata__vault__is_null=True,
         )
         if not other.exists():
             return False
@@ -823,16 +827,18 @@ class FileVersion(ObjectIDMixin, BaseModel):
         return True
 
     def serialize_waterbutler_settings(self, node_id, root_id):
-        return dict(self.region.waterbutler_settings, **{
-            'nid': node_id,
-            'rootId': root_id,
-            'baseUrl': api_url_for(
-                'osfstorage_get_metadata',
-                guid=node_id,
-                _absolute=True,
-                _internal=True
-            ),
-        })
+        return dict(
+            self.region.waterbutler_settings, **{
+                'nid': node_id,
+                'rootId': root_id,
+                'baseUrl': api_url_for(
+                    'osfstorage_get_metadata',
+                    guid=node_id,
+                    _absolute=True,
+                    _internal=True,
+                ),
+            }
+        )
 
     class Meta:
         ordering = ('-created',)

@@ -55,7 +55,7 @@ class TestConfigViews(ZoteroTestCase, views.OAuthCitationAddonConfigViewsTestCas
             self.folder.name,
             Auth(self.user),
             'personal',
-            'personal'
+            'personal',
         )
 
     def test_widget_view_incomplete_library_set_only(self):
@@ -68,7 +68,7 @@ class TestConfigViews(ZoteroTestCase, views.OAuthCitationAddonConfigViewsTestCas
             self.folder.name,
             Auth(self.user),
             self.library.json['id'],
-            self.library.name
+            self.library.name,
         )
         assert_false(self.node_settings.complete)
         assert_equal(self.node_settings.list_id, None)
@@ -89,7 +89,7 @@ class TestConfigViews(ZoteroTestCase, views.OAuthCitationAddonConfigViewsTestCas
             self.folder.name,
             Auth(self.user),
             self.library.json['id'],
-            self.library.name
+            self.library.name,
         )
         # Sets folder
         self.citationsProvider().set_config(
@@ -114,8 +114,8 @@ class TestConfigViews(ZoteroTestCase, views.OAuthCitationAddonConfigViewsTestCas
                 responses.GET,
                 self.foldersApiUrl,
                 body=self.mockResponsesFiledUnfiled['folders'],
-                content_type='application/json'
-            )
+                content_type='application/json',
+            ),
         )
 
         responses.add(
@@ -123,13 +123,13 @@ class TestConfigViews(ZoteroTestCase, views.OAuthCitationAddonConfigViewsTestCas
                 responses.GET,
                 self.documentsApiUrl,
                 body=self.mockResponsesFiledUnfiled['documents'],
-                content_type='application/json'
-            )
+                content_type='application/json',
+            ),
         )
 
         res = self.app.get(
             self.project.api_url_for('{0}_citation_list'.format(self.ADDON_SHORT_NAME), list_id='ROOT'),
-            auth=self.user.auth
+            auth=self.user.auth,
         )
 
         children = res.json['contents']

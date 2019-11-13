@@ -123,10 +123,12 @@ def assert_latest_log_not(log_action, node_key, index=0):
     assert last_log._id == new_log._id
 
 @contextlib.contextmanager
-def mock_archive(project, schema=None, auth=None, data=None, parent=None,
-                 embargo=False, embargo_end_date=None,
-                 retraction=False, justification=None, autoapprove_retraction=False,
-                 autocomplete=True, autoapprove=False):
+def mock_archive(
+    project, schema=None, auth=None, data=None, parent=None,
+    embargo=False, embargo_end_date=None,
+    retraction=False, justification=None, autoapprove_retraction=False,
+    autocomplete=True, autoapprove=False,
+):
     """ A context manager for registrations. When you want to call Node#register_node in
     a test but do not want to deal with any of this side effects of archiver, this
     helper allows for creating a registration in a safe fashion.
@@ -173,7 +175,7 @@ def mock_archive(project, schema=None, auth=None, data=None, parent=None,
         )
         registration.root.embargo_registration(
             project.creator,
-            embargo_end_date
+            embargo_end_date,
         )
     else:
         registration.root.require_approval(project.creator)
@@ -184,10 +186,11 @@ def mock_archive(project, schema=None, auth=None, data=None, parent=None,
         root_job.done = True
         root_job.save()
         sanction = registration.root.sanction
-        mock.patch.object(root_job, 'archive_tree_finished', mock.Mock(return_value=True))
-        mock.patch('website.archiver.tasks.archive_success.delay', mock.Mock())
-        archiver_listeners.archive_callback(registration)
-
+        with contextlib.nested(
+            mock.patch.object(root_job, 'archive_tree_finished', mock.Mock(return_value=True)),
+            mock.patch('website.archiver.tasks.archive_success.delay', mock.Mock()),
+        ):
+            archiver_listeners.archive_callback(registration)
     if autoapprove:
         sanction = registration.root.sanction
         sanction.state = Sanction.APPROVED

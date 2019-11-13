@@ -22,21 +22,21 @@ FULL_NAME = 'Amazon S3'
 
 s3_account_list = generic_views.account_list(
     SHORT_NAME,
-    S3Serializer
+    S3Serializer,
 )
 
 s3_import_auth = generic_views.import_auth(
     SHORT_NAME,
-    S3Serializer
+    S3Serializer,
 )
 
 s3_deauthorize_node = generic_views.deauthorize_node(
-    SHORT_NAME
+    SHORT_NAME,
 )
 
 s3_get_config = generic_views.get_config(
     SHORT_NAME,
-    S3Serializer
+    S3Serializer,
 )
 
 def _set_folder(node_addon, folder, auth):
@@ -48,7 +48,7 @@ s3_set_config = generic_views.set_config(
     SHORT_NAME,
     FULL_NAME,
     S3Serializer,
-    _set_folder
+    _set_folder,
 )
 
 @must_have_addon(SHORT_NAME, 'node')
@@ -75,7 +75,8 @@ def s3_add_user_account(auth, **kwargs):
     user_info = utils.get_user_info(access_key, secret_key)
     if not user_info:
         return {
-            'message': ('Unable to access account.\n'
+            'message': (
+                'Unable to access account.\n'
                 'Check to make sure that the above credentials are valid, '
                 'and that they have permission to list buckets.')
         }, http_status.HTTP_400_BAD_REQUEST
@@ -101,7 +102,7 @@ def s3_add_user_account(auth, **kwargs):
         # ... or get the old one
         account = ExternalAccount.objects.get(
             provider=SHORT_NAME,
-            provider_id=user_info.id
+            provider_id=user_info.id,
         )
         if account.oauth_key != access_key or account.oauth_secret != secret_key:
             account.oauth_key = access_key

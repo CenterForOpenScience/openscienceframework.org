@@ -24,8 +24,10 @@ from framework.flask import rm_handlers
 from osf.models import RegistrationSchema
 from website import settings
 from website.app import init_app
-from website.notifications.listeners import (subscribe_contributor,
-                                             subscribe_creator)
+from website.notifications.listeners import (
+    subscribe_contributor,
+    subscribe_creator,
+)
 from website.project.signals import contributor_added, project_created
 from website.project.views.contributor import notify_added_contributor
 from website.signals import ALL_SIGNALS
@@ -108,7 +110,7 @@ class AppTestCase(unittest.TestCase):
     PUSH_CONTEXT = True
     DISCONNECTED_SIGNALS = {
         # disconnect notify_add_contributor so that add_contributor does not send "fake" emails in tests
-        contributor_added: [notify_added_contributor]
+        contributor_added: [notify_added_contributor],
     }
 
     def setUp(self):
@@ -119,7 +121,7 @@ class AppTestCase(unittest.TestCase):
             return
         self.context = test_app.test_request_context(headers={
             'Remote-Addr': '146.9.219.56',
-            'User-Agent': 'Mozilla/5.0 (X11; U; SunOS sun4u; en-US; rv:0.9.4.1) Gecko/20020518 Netscape6/6.2.3'
+            'User-Agent': 'Mozilla/5.0 (X11; U; SunOS sun4u; en-US; rv:0.9.4.1) Gecko/20020518 Netscape6/6.2.3',
         })
         self.context.push()
         with self.context:
@@ -214,7 +216,7 @@ class ApiAddonTestCase(ApiTestCase):
         return {
             'user_settings': self.user_settings,
             'folder_id': '1234567890',
-            'owner': self.node
+            'owner': self.node,
         }
 
     def setUp(self):
@@ -225,7 +227,7 @@ class ApiAddonTestCase(ApiTestCase):
         )
         from addons.base.models import (
             BaseOAuthNodeSettings,
-            BaseOAuthUserSettings
+            BaseOAuthUserSettings,
         )
         assert self.addon_type in ('CONFIGURABLE', 'OAUTH', 'UNMANAGEABLE', 'INVALID')
         self.account = None
@@ -277,7 +279,7 @@ class NotificationTestCase(OsfTestCase):
     DISCONNECTED_SIGNALS = {
         # disconnect signals so that add_contributor does not send "fake" emails in tests
         contributor_added: [notify_added_contributor, subscribe_contributor],
-        project_created: [subscribe_creator]
+        project_created: [subscribe_creator],
     }
 
     def setUp(self):
@@ -373,8 +375,10 @@ def assert_is_redirect(response, msg='Response is a redirect.'):
 
 def assert_before(lst, item1, item2):
     """Assert that item1 appears before item2 in lst."""
-    assert_less(lst.index(item1), lst.index(item2),
-        '{0!r} appears before {1!r}'.format(item1, item2))
+    assert_less(
+        lst.index(item1), lst.index(item2),
+        '{0!r} appears before {1!r}'.format(item1, item2),
+    )
 
 def assert_datetime_equal(dt1, dt2, allowance=500):
     """Assert that two datetimes are about equal."""

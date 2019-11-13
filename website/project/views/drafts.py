@@ -58,8 +58,8 @@ def must_be_branched_from_node(func):
                 http_status.HTTP_400_BAD_REQUEST,
                 data={
                     'message_short': 'Not a draft of this node',
-                    'message_long': 'This draft registration is not created from the given node.'
-                }
+                    'message_long': 'This draft registration is not created from the given node.',
+                },
             )
         return func(*args, **kwargs)
     return wrapper
@@ -96,8 +96,8 @@ def validate_registration_choice(registration_choice):
             http_status.HTTP_400_BAD_REQUEST,
             data={
                 'message_short': "Invalid 'registrationChoice'",
-                'message_long': "Values for 'registrationChoice' must be either 'embargo' or 'immediate'."
-            }
+                'message_long': "Values for 'registrationChoice' must be either 'embargo' or 'immediate'.",
+            },
         )
 
 def check_draft_state(draft):
@@ -163,7 +163,7 @@ def submit_draft_for_review(auth, node, draft, *args, **kwargs):
     draft.submit_for_review(
         initiated_by=auth.user,
         meta=meta,
-        save=True
+        save=True,
     )
 
     if prereg_utils.get_prereg_schema() == draft.registration_schema:
@@ -172,19 +172,21 @@ def submit_draft_for_review(auth, node, draft, *args, **kwargs):
             action=NodeLog.PREREG_REGISTRATION_INITIATED,
             params={'node': node._primary_key},
             auth=auth,
-            save=False
+            save=False,
         )
         node.save()
 
-    push_status_message(language.AFTER_SUBMIT_FOR_REVIEW,
-                        kind='info',
-                        trust=False,
-                        id='registration_submitted')
+    push_status_message(
+        language.AFTER_SUBMIT_FOR_REVIEW,
+        kind='info',
+        trust=False,
+        id='registration_submitted',
+    )
     return {
         'data': {
             'links': {
-                'html': node.web_url_for('node_registrations', _guid=True)
-            }
+                'html': node.web_url_for('node_registrations', _guid=True),
+            },
         },
         'status': 'initiated',
     }, http_status.HTTP_202_ACCEPTED
@@ -255,8 +257,8 @@ def new_draft_registration(auth, node, *args, **kwargs):
             http_status.HTTP_400_BAD_REQUEST,
             data={
                 'message_short': 'Must specify a schema_name',
-                'message_long': 'Please specify a schema_name'
-            }
+                'message_long': 'Please specify a schema_name',
+            },
         )
 
     schema_version = data.get('schema_version', 2)
@@ -266,7 +268,7 @@ def new_draft_registration(auth, node, *args, **kwargs):
         node,
         user=auth.user,
         schema=meta_schema,
-        data={}
+        data={},
     )
     return redirect(node.web_url_for('edit_draft_registration_page', draft_id=draft._id, _guid=True))
 
@@ -328,8 +330,8 @@ def delete_draft_registration(auth, node, draft, *args, **kwargs):
             http_status.HTTP_403_FORBIDDEN,
             data={
                 'message_short': 'Can\'t delete draft',
-                'message_long': 'This draft has already been registered and cannot be deleted.'
-            }
+                'message_long': 'This draft has already been registered and cannot be deleted.',
+            },
         )
     draft.deleted = timezone.now()
     draft.save(update_fields=['deleted'])

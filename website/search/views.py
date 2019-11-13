@@ -129,7 +129,7 @@ def search_projects_by_title(**kwargs):
 
     matching_title = Q(
         title__icontains=term,  # search term (case insensitive)
-        category=category  # is a project
+        category=category,  # is a project
     )
 
     matching_title = conditionally_add_query_item(matching_title, 'is_deleted', is_deleted, True)
@@ -147,14 +147,14 @@ def search_projects_by_title(**kwargs):
     if include_contributed == 'yes':
         my_projects = AbstractNode.objects.filter(
             matching_title &
-            Q(_contributors=user)  # user is a contributor
+            Q(_contributors=user),  # user is a contributor
         )[:max_results]
         my_project_count = my_project_count
 
     if my_project_count < max_results and include_public == 'yes':
         public_projects = AbstractNode.objects.filter(
             matching_title &
-            Q(is_public=True)  # is public
+            Q(is_public=True),  # is public
         )[:max_results - my_project_count]
 
     results = list(my_projects) + list(public_projects)
@@ -202,5 +202,7 @@ def search_contributor(auth):
     query = bleach.clean(request.args.get('query', ''), tags=[], strip=True)
     page = int(bleach.clean(request.args.get('page', '0'), tags=[], strip=True))
     size = int(bleach.clean(request.args.get('size', '5'), tags=[], strip=True))
-    return search.search_contributor(query=query, page=page, size=size,
-                                     exclude=exclude, current_user=user)
+    return search.search_contributor(
+        query=query, page=page, size=size,
+        exclude=exclude, current_user=user,
+    )

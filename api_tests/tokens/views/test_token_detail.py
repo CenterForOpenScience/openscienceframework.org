@@ -14,7 +14,8 @@ from website.util import api_v2_url
 def post_payload(
         type_payload='tokens',
         scopes=None,
-        name='A shiny updated token'):
+        name='A shiny updated token',
+):
     if not scopes:
         scopes = ApiOAuth2ScopeFactory().name
     return {
@@ -28,13 +29,13 @@ def post_payload(
                     'data': [
                         {
                             'type': 'scopes',
-                            'id': scopes
-                        }
-                    ]
+                            'id': scopes,
+                        },
+                    ],
 
-                }
-            }
-        }
+                },
+            },
+        },
     }
 
 
@@ -68,7 +69,8 @@ class TestTokenDetailScopesAsRelationships:
 
     def test_token_detail_who_can_view(
             self, app, url_token_detail, user_one,
-            user_two, token_user_one):
+            user_two, token_user_one,
+    ):
 
         # test_owner_can_view
         res = app.get(url_token_detail, auth=user_one.auth)
@@ -85,14 +87,16 @@ class TestTokenDetailScopesAsRelationships:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_owner_can_delete(
-            self, mock_method, app, user_one, url_token_detail):
+            self, mock_method, app, user_one, url_token_detail,
+    ):
         mock_method.return_value(True)
         res = app.delete(url_token_detail, auth=user_one.auth)
         assert res.status_code == 204
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_deleting_tokens_makes_api_view_inaccessible(
-            self, mock_method, app, url_token_detail, user_one):
+            self, mock_method, app, url_token_detail, user_one,
+    ):
         mock_method.return_value(True)
         app.delete(url_token_detail, auth=user_one.auth)
         res = app.get(url_token_detail, auth=user_one.auth, expect_errors=True)
@@ -100,7 +104,8 @@ class TestTokenDetailScopesAsRelationships:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_updating_one_field_should_not_blank_others_on_patch_update(
-            self, mock_revoke, app, token_user_one, url_token_detail, user_one, read_scope):
+            self, mock_revoke, app, token_user_one, url_token_detail, user_one, read_scope,
+    ):
         mock_revoke.return_value = True
         user_one_token = token_user_one
         new_name = 'The token formerly known as Prince'
@@ -118,15 +123,16 @@ class TestTokenDetailScopesAsRelationships:
                             'data': [
                                 {
                                     'type': 'scopes',
-                                    'id': read_scope.name
-                                }
-                            ]
+                                    'id': read_scope.name,
+                                },
+                            ],
 
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             },
-            auth=user_one.auth)
+            auth=user_one.auth,
+        )
         user_one_token.reload()
         assert res.status_code == 200
 
@@ -134,7 +140,8 @@ class TestTokenDetailScopesAsRelationships:
             {
                 'name': new_name,
             },
-            res.json['data']['attributes'])
+            res.json['data']['attributes'],
+        )
         assert res.json['data']['id'] == user_one_token._id
         assert res.json['data']['relationships']['owner']['data']['id'] == user_one_token.owner._id
         assert len(res.json['data']['embeds']['scopes']['data']) == 1
@@ -142,7 +149,8 @@ class TestTokenDetailScopesAsRelationships:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_updating_an_instance_does_not_change_the_number_of_instances(
-            self, mock_revoke, app, url_token_detail, url_token_list, token_user_one, user_one, read_scope):
+            self, mock_revoke, app, url_token_detail, url_token_list, token_user_one, user_one, read_scope,
+    ):
         mock_revoke.return_value = True
         new_name = 'The token formerly known as Prince'
         res = app.patch_json_api(
@@ -156,15 +164,17 @@ class TestTokenDetailScopesAsRelationships:
                         'data': [
                             {
                                 'type': 'scopes',
-                                'id': read_scope.name
-                            }
-                        ]
+                                'id': read_scope.name,
+                            },
+                        ],
 
-                    }
+                    },
                 },
                 'id': token_user_one._id,
-                'type': 'tokens'}},
-            auth=user_one.auth)
+                'type': 'tokens',
+            }},
+            auth=user_one.auth,
+        )
         assert res.status_code == 200
 
         res = app.get(url_token_list, auth=user_one.auth)
@@ -173,28 +183,32 @@ class TestTokenDetailScopesAsRelationships:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_deleting_token_flags_instance_inactive(
-            self, mock_method, app, url_token_detail, user_one, token_user_one):
+            self, mock_method, app, url_token_detail, user_one, token_user_one,
+    ):
         mock_method.return_value(True)
         app.delete(url_token_detail, auth=user_one.auth)
         token_user_one.reload()
         assert not token_user_one.is_active
 
     def test_read_does_not_return_token_id(
-            self, app, url_token_detail, user_one):
+            self, app, url_token_detail, user_one,
+    ):
         res = app.get(url_token_detail, auth=user_one.auth)
         assert res.status_code == 200
         assert 'token_id' not in res.json['data']['attributes']
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_update_token_does_not_return_token_id(
-            self, mock_revoke, app, url_token_detail, user_one):
+            self, mock_revoke, app, url_token_detail, user_one,
+    ):
         mock_revoke.return_value = True
         correct = post_payload()
         res = app.put_json_api(
             url_token_detail,
             correct,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 200
         assert 'token_id' not in res.json['data']['attributes']
 
@@ -206,7 +220,8 @@ class TestTokenDetailScopesAsRelationships:
             url_token_detail,
             correct,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 200
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
@@ -219,7 +234,8 @@ class TestTokenDetailScopesAsRelationships:
             url_token_detail,
             correct,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 200
         scopes_data = res.json['data']['embeds']['scopes']['data']
         assert len(scopes_data) == 1
@@ -230,25 +246,29 @@ class TestTokenDetailScopesAsRelationships:
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_token_detail_crud_with_wrong_payload(
             self, mock_revoke, app, url_token_list, url_token_detail,
-            token_user_one, user_one, user_two):
+            token_user_one, user_one, user_two,
+    ):
         mock_revoke.return_value = True
 
         # test_non_owner_cant_delete
         res = app.delete(
             url_token_detail,
             auth=user_two.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 403
 
         # test_create_with_nonexistant_scope_fails
         injected_scope = post_payload(
             name='A shiny invalid token',
-            scopes='osf.admin')
+            scopes='osf.admin',
+        )
         res = app.post_json_api(
             url_token_list,
             injected_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 404
 
         # test_create_with_private_scope_fails
@@ -257,34 +277,40 @@ class TestTokenDetailScopesAsRelationships:
         fake_scope.save()
         nonsense_scope = post_payload(
             name='A shiny invalid token',
-            scopes=fake_scope.name)
+            scopes=fake_scope.name,
+        )
         res = app.post_json_api(
             url_token_list,
             nonsense_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_update_with_nonexistant_scope_fails
         injected_scope = post_payload(
             name='A shiny invalid token',
-            scopes='osf.admin')
+            scopes='osf.admin',
+        )
         res = app.put_json_api(
             url_token_detail,
             injected_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 404
 
         # test_update_with_private_scope_fails
         nonsense_scope = post_payload(
             name='A shiny invalid token',
-            scopes=fake_scope.name)
+            scopes=fake_scope.name,
+        )
         res = app.put_json_api(
             url_token_detail,
             nonsense_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_update_token_incorrect_type
@@ -293,7 +319,8 @@ class TestTokenDetailScopesAsRelationships:
             url_token_detail,
             incorrect_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 409
 
         # test_update_token_no_type
@@ -302,20 +329,22 @@ class TestTokenDetailScopesAsRelationships:
             url_token_detail,
             missing_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_update_token_no_attributes
         payload = {
             'id': token_user_one._id,
             'type': 'tokens',
-            'name': 'The token formerly known as Prince'
+            'name': 'The token formerly known as Prince',
         }
         res = app.put_json_api(
             url_token_detail,
             payload,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_partial_update_token_incorrect_type
@@ -324,7 +353,8 @@ class TestTokenDetailScopesAsRelationships:
             url_token_detail,
             incorrect_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 409
 
         # test_partial_update_token_no_type
@@ -333,22 +363,23 @@ class TestTokenDetailScopesAsRelationships:
             url_token_detail,
             missing_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
-
 
 def post_attributes_payload(
         type_payload='tokens',
         scopes='osf.full_write',
-        name='A shiny updated token'):
+        name='A shiny updated token',
+):
     return {
         'data': {
             'type': type_payload,
             'attributes': {
                 'name': name,
                 'scopes': scopes,
-            }
-        }
+            },
+        },
     }
 
 
@@ -382,7 +413,8 @@ class TestTokenDetailScopesAsAttributes:
 
     def test_token_detail_who_can_view(
             self, app, url_token_detail, user_one,
-            user_two, token_user_one):
+            user_two, token_user_one,
+    ):
 
         # test_owner_can_view
         res = app.get(url_token_detail, auth=user_one.auth)
@@ -400,14 +432,16 @@ class TestTokenDetailScopesAsAttributes:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_owner_can_delete(
-            self, mock_method, app, user_one, url_token_detail):
+            self, mock_method, app, user_one, url_token_detail,
+    ):
         mock_method.return_value(True)
         res = app.delete(url_token_detail, auth=user_one.auth)
         assert res.status_code == 204
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_deleting_tokens_makes_api_view_inaccessible(
-            self, mock_method, app, url_token_detail, user_one):
+            self, mock_method, app, url_token_detail, user_one,
+    ):
         mock_method.return_value(True)
         app.delete(url_token_detail, auth=user_one.auth)
         res = app.get(url_token_detail, auth=user_one.auth, expect_errors=True)
@@ -415,7 +449,8 @@ class TestTokenDetailScopesAsAttributes:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_updating_one_field_should_not_blank_others_on_patch_update(
-            self, mock_revoke, app, token_user_one, url_token_detail, user_one, write_scope):
+            self, mock_revoke, app, token_user_one, url_token_detail, user_one, write_scope,
+    ):
         mock_revoke.return_value = True
         user_one_token = token_user_one
         new_name = 'The token formerly known as Prince'
@@ -425,13 +460,14 @@ class TestTokenDetailScopesAsAttributes:
                 'data': {
                     'attributes': {
                         'name': new_name,
-                        'scopes': 'osf.full_write'
+                        'scopes': 'osf.full_write',
                     },
                     'id': token_user_one._id,
-                    'type': 'tokens'
-                }
+                    'type': 'tokens',
+                },
             },
-            auth=user_one.auth)
+            auth=user_one.auth,
+        )
         user_one_token.reload()
         assert res.status_code == 200
         assert_dict_contains_subset(
@@ -440,12 +476,14 @@ class TestTokenDetailScopesAsAttributes:
                 'name': new_name,
                 'scopes': '{}'.format(write_scope.name),
             },
-            res.json['data']['attributes'])
+            res.json['data']['attributes'],
+        )
         assert res.json['data']['id'] == user_one_token._id
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_updating_an_instance_does_not_change_the_number_of_instances(
-            self, mock_revoke, app, url_token_detail, url_token_list, token_user_one, user_one, write_scope):
+            self, mock_revoke, app, url_token_detail, url_token_list, token_user_one, user_one, write_scope,
+    ):
         mock_revoke.return_value = True
         new_name = 'The token formerly known as Prince'
         res = app.patch_json_api(
@@ -453,11 +491,13 @@ class TestTokenDetailScopesAsAttributes:
             {'data': {
                 'attributes': {
                     'name': new_name,
-                    'scopes': 'osf.full_write'
+                    'scopes': 'osf.full_write',
                 },
                 'id': token_user_one._id,
-                'type': 'tokens'}},
-            auth=user_one.auth)
+                'type': 'tokens',
+            }},
+            auth=user_one.auth,
+        )
         assert res.status_code == 200
 
         res = app.get(url_token_list, auth=user_one.auth)
@@ -467,14 +507,16 @@ class TestTokenDetailScopesAsAttributes:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_deleting_token_flags_instance_inactive(
-            self, mock_method, app, url_token_detail, user_one, token_user_one):
+            self, mock_method, app, url_token_detail, user_one, token_user_one,
+    ):
         mock_method.return_value(True)
         app.delete(url_token_detail, auth=user_one.auth)
         token_user_one.reload()
         assert not token_user_one.is_active
 
     def test_read_does_not_return_token_id(
-            self, app, url_token_detail, user_one):
+            self, app, url_token_detail, user_one,
+    ):
         res = app.get(url_token_detail, auth=user_one.auth)
         assert res.status_code == 200
         assert 'token_id' not in res.json['data']['attributes']
@@ -482,14 +524,16 @@ class TestTokenDetailScopesAsAttributes:
 
     @mock.patch('framework.auth.cas.CasClient.revoke_tokens')
     def test_update_token_does_not_return_token_id(
-            self, mock_revoke, app, url_token_detail, user_one, write_scope):
+            self, mock_revoke, app, url_token_detail, user_one, write_scope,
+    ):
         mock_revoke.return_value = True
         correct = post_attributes_payload(scopes='osf.full_write')
         res = app.put_json_api(
             url_token_detail,
             correct,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 200
         assert 'token_id' not in res.json['data']['attributes']
         assert res.json['data']['attributes']['scopes'] == write_scope.name
@@ -502,19 +546,22 @@ class TestTokenDetailScopesAsAttributes:
             url_token_detail,
             correct,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 200
         assert res.json['data']['attributes']['scopes'] == write_scope.name
 
     def test_token_detail_crud_with_wrong_payload(
             self, app, url_token_list, url_token_detail,
-            token_user_one, user_one, user_two):
+            token_user_one, user_one, user_two,
+    ):
 
         # test_non_owner_cant_delete
         res = app.delete(
             url_token_detail,
             auth=user_two.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 403
 
         # test_create_with_admin_scope_fails
@@ -524,45 +571,53 @@ class TestTokenDetailScopesAsAttributes:
 
         injected_scope = post_attributes_payload(
             name='A shiny invalid token',
-            scopes='osf.admin')
+            scopes='osf.admin',
+        )
         res = app.post_json_api(
             url_token_list,
             injected_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_create_with_fake_scope_fails
         nonsense_scope = post_attributes_payload(
             name='A shiny invalid token',
-            scopes='osf.nonsense')
+            scopes='osf.nonsense',
+        )
         res = app.post_json_api(
             url_token_list,
             nonsense_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 404
 
         # test_update_with_admin_scope_fails
         injected_scope = post_attributes_payload(
             name='A shiny invalid token',
-            scopes='osf.admin')
+            scopes='osf.admin',
+        )
         res = app.put_json_api(
             url_token_detail,
             injected_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_update_with_fake_scope_fails
         nonsense_scope = post_attributes_payload(
             name='A shiny invalid token',
-            scopes='osf.nonsense')
+            scopes='osf.nonsense',
+        )
         res = app.put_json_api(
             url_token_detail,
             nonsense_scope,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 404
 
         # test_update_token_incorrect_type
@@ -571,7 +626,8 @@ class TestTokenDetailScopesAsAttributes:
             url_token_detail,
             incorrect_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 409
 
         # test_update_token_no_type
@@ -580,20 +636,22 @@ class TestTokenDetailScopesAsAttributes:
             url_token_detail,
             missing_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_update_token_no_attributes
         payload = {
             'id': token_user_one._id,
             'type': 'tokens',
-            'name': 'The token formerly known as Prince'
+            'name': 'The token formerly known as Prince',
         }
         res = app.put_json_api(
             url_token_detail,
             payload,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test_partial_update_token_incorrect_type
@@ -602,7 +660,8 @@ class TestTokenDetailScopesAsAttributes:
             url_token_detail,
             incorrect_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 409
 
         # test_partial_update_token_no_type
@@ -611,7 +670,8 @@ class TestTokenDetailScopesAsAttributes:
             url_token_detail,
             missing_type,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
 
         # test token too long
@@ -620,5 +680,6 @@ class TestTokenDetailScopesAsAttributes:
             url_token_detail,
             payload,
             auth=user_one.auth,
-            expect_errors=True)
+            expect_errors=True,
+        )
         assert res.status_code == 400
