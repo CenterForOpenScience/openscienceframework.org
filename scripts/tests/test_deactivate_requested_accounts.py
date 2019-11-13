@@ -39,11 +39,13 @@ class TestDeactivateRequestedAccount:
         assert user_requested_deactivation.requested_deactivation
         assert user_requested_deactivation.contacted_deactivation
         assert user_requested_deactivation.is_disabled
-        mock_mail.assert_called_with(can_change_preferences=False,
-                                     mail=mails.REQUEST_DEACTIVATION_COMPLETE,
-                                     to_addr=user_requested_deactivation.username,
-                                     contact_email=settings.OSF_CONTACT_EMAIL,
-                                     user=user_requested_deactivation)
+        mock_mail.assert_called_with(
+            can_change_preferences=False,
+            mail=mails.REQUEST_DEACTIVATION_COMPLETE,
+            to_addr=user_requested_deactivation.username,
+            contact_email=settings.OSF_CONTACT_EMAIL,
+            user=user_requested_deactivation,
+        )
 
     @mock.patch('osf.management.commands.deactivate_requested_accounts.mails.send_mail')
     def test_deactivate_user_with_content(self, mock_mail, user_requested_deactivation_with_node):
@@ -53,8 +55,10 @@ class TestDeactivateRequestedAccount:
 
         assert user_requested_deactivation_with_node.requested_deactivation
         assert not user_requested_deactivation_with_node.is_disabled
-        mock_mail.assert_called_with(can_change_preferences=False,
-                                     mail=mails.REQUEST_DEACTIVATION,
-                                     to_addr=settings.OSF_SUPPORT_EMAIL,
-                                     user=user_requested_deactivation_with_node)
+        mock_mail.assert_called_with(
+            can_change_preferences=False,
+            mail=mails.REQUEST_DEACTIVATION,
+            to_addr=settings.OSF_SUPPORT_EMAIL,
+            user=user_requested_deactivation_with_node,
+        )
 

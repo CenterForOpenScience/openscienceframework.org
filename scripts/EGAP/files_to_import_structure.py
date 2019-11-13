@@ -131,22 +131,22 @@ if __name__ == '__main__':
     parser.add_argument(
         '-source',
         '--source',
-        help='The directory for the EGAP data files, traditionally called "EGAP_REGISTRY_staging/3 Registrations/"'
+        help='The directory for the EGAP data files, traditionally called "EGAP_REGISTRY_staging/3 Registrations/"',
     )
     parser.add_argument(
         '-destination',
         '--destination',
-        help='The directory of the import file structure containing the bags of data.'
+        help='The directory of the import file structure containing the bags of data.',
     )
     parser.add_argument(
         '-list',
         '--list',
-        help='An optional list of ids to import into a the new metadata directory.'
+        help='An optional list of ids to import into a the new metadata directory.',
     )
     parser.add_argument(
         '-audit',
         '--audit',
-        help='Boolean to generate two lists of all files that should and should not be included. Needs "source".'
+        help='Boolean to generate two lists of all files that should and should not be included. Needs "source".',
     )
 
     args = parser.parse_args()

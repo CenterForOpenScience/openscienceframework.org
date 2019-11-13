@@ -58,7 +58,7 @@ other_mapping = {
     'q22': 'q23',
     'q26': 'q27',
     'q28': 'q29',
-    'q30': 'q31'
+    'q30': 'q31',
 }
 
 
@@ -223,7 +223,7 @@ def build_nested_response(value):
     return {
         'comments': [],
         'extra': [],
-        'value': value
+        'value': value,
     }
 
 
@@ -234,7 +234,7 @@ def base_metaschema(metaschema):
         'title': metaschema['title'],
         'additionalProperties': False,
         'properties': {
-        }
+        },
     }
     return json_schema
 
@@ -275,14 +275,14 @@ COMMENTS_SCHEMA = {
                 'additionalProperties': True,
                 'properties': {
                     'fullname': {'type': 'string'},
-                    'id': {'type': 'integer'}
-                }
+                    'id': {'type': 'integer'},
+                },
             },
             'saved': {'type': 'boolean'},
             'canEdit': {'type': 'boolean'},
-            'isDeleted': {'type': 'boolean'}
-        }
-    }
+            'isDeleted': {'type': 'boolean'},
+        },
+    },
 }
 
 
@@ -310,7 +310,7 @@ def get_object_jsonschema(question, required_fields, is_reviewer, is_required):
         'additionalProperties': False,
         'properties': {
 
-        }
+        },
     }
     required = []
     properties = question.get('properties')
@@ -322,7 +322,7 @@ def get_object_jsonschema(question, required_fields, is_reviewer, is_required):
             object_jsonschema['properties'][property['id']] = {
                 'type': 'object',
                 'additionalProperties': False,
-                'properties': values
+                'properties': values,
             }
             if required_fields:
                 object_jsonschema['properties'][property['id']]['required'] = ['value']
@@ -359,10 +359,10 @@ OSF_UPLOAD_EXTRA_SCHEMA = {
                                 'additionalProperties': False,
                                 'properties': {
                                     'sha256': {'type': 'string'},
-                                    'md5': {'type': 'string'}
-                                }
-                            }
-                        }
+                                    'md5': {'type': 'string'},
+                                },
+                            },
+                        },
                     },
                     'materialized': {'type': 'string'},
                     'modified': {'type': 'string'},
@@ -381,7 +381,7 @@ OSF_UPLOAD_EXTRA_SCHEMA = {
                         'properties': {
                             'acceptedFiles': {'type': 'boolean'},
                             'maxSize': {'type': 'integer'},
-                        }
+                        },
                     },
                     'links': {
                         'type': 'object',
@@ -390,32 +390,32 @@ OSF_UPLOAD_EXTRA_SCHEMA = {
                             'download': {'type': 'string'},
                             'move': {'type': 'string'},
                             'upload': {'type': 'string'},
-                            'delete': {'type': 'string'}
-                        }
+                            'delete': {'type': 'string'},
+                        },
                     },
                     'permissions': {
                         'type': 'object',
                         'additionalProperties': False,
                         'properties': {
                             'edit': {'type': 'boolean'},
-                            'view': {'type': 'boolean'}
-                        }
+                            'view': {'type': 'boolean'},
+                        },
                     },
                     'created_utc': {'type': 'string'},
                     'id': {'type': 'string'},
                     'modified_utc': {'type': 'string'},
                     'size': {'type': 'integer'},
                     'sizeInt': {'type': 'integer'},
-                }
+                },
             },
             'fileId': {'type': ['string', 'object']},
             'descriptionValue': {'type': 'string'},
             'sha256': {'type': 'string'},
             'selectedFileName': {'type': 'string'},
             'nodeId': {'type': 'string'},
-            'viewUrl': {'type': 'string'}
-        }
-    }
+            'viewUrl': {'type': 'string'},
+        },
+    },
 }
 
 
@@ -426,7 +426,7 @@ def extract_question_values(question, required_fields, is_reviewer, is_required)
     response = {
         'value': {'type': 'string'},
         'comments': COMMENTS_SCHEMA,
-        'extra': {'type': 'array'}
+        'extra': {'type': 'array'},
     }
     if question.get('type') == 'object':
         response['value'] = get_object_jsonschema(question, required_fields, is_reviewer, is_required)
@@ -466,7 +466,7 @@ def create_jsonschema_from_metaschema(metaschema, required_fields=False, is_revi
             json_schema['properties'][question['qid']] = {
                 'type': 'object',
                 'additionalProperties': False,
-                'properties': extract_question_values(question, required_fields, is_reviewer, is_required)
+                'properties': extract_question_values(question, required_fields, is_reviewer, is_required),
             }
             if required_fields:
                 json_schema['properties'][question['qid']]['required'] = ['value']
@@ -496,9 +496,11 @@ def validate_response(qid, value):
     temporary_check = {}
     temporary_check[qid] = value
     egap_schema = ensure_schema_structure(from_json('egap-registration.json'))
-    schema = create_jsonschema_from_metaschema(egap_schema,
+    schema = create_jsonschema_from_metaschema(
+        egap_schema,
         required_fields=False,
-        is_reviewer=False)
+        is_reviewer=False,
+    )
 
     try:
         json_schema = jsonschema.validate(temporary_check, schema)
@@ -511,9 +513,11 @@ def validate_response(qid, value):
 
 def validate_all_responses(value, project_id):
     egap_schema = ensure_schema_structure(from_json('egap-registration.json'))
-    schema = create_jsonschema_from_metaschema(egap_schema,
+    schema = create_jsonschema_from_metaschema(
+        egap_schema,
         required_fields=True,
-        is_reviewer=False)
+        is_reviewer=False,
+    )
 
     try:
         json_schema = jsonschema.validate(value, schema)
