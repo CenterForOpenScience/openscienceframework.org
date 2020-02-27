@@ -65,7 +65,8 @@ from .factories import (
     UnregUserFactory,
     UserFactory,
     RegistrationFactory,
-    PreprintFactory
+    PreprintFactory,
+    UserLogFactory
 )
 from tests.base import OsfTestCase
 from tests.utils import run_celery_tasks
@@ -290,9 +291,9 @@ class TestOSFUser:
 
         assert user.nodes.filter(type='osf.node').count() == 5
         # one group for each node
-        assert user.groups.count() == 6  # (including quickfiles node)
+        assert user.groups.count() == 5
         assert user2.nodes.filter(type='osf.node').count() == 0
-        assert user2.groups.count() == 1  # (quickfilesnode)
+        assert user2.groups.count() == 0
 
         contrib_obj = Contributor.objects.get(user=user, node=project_one)
         assert contrib_obj.visible is True
@@ -603,6 +604,7 @@ class TestOSFUser:
         assert 'foo@bar.com' not in user.unconfirmed_emails
         assert user.emails.filter(address='foo@bar.com').exists()
 
+    @pytest.mark.enable_quickfiles_creation
     def test_confirm_email_merge_select_for_update(self, user):
         mergee = UserFactory(username='foo@bar.com')
         token = user.add_unconfirmed_email('foo@bar.com')
@@ -617,6 +619,7 @@ class TestOSFUser:
         for_update_sql = connection.ops.for_update_sql()
         assert any(for_update_sql in query['sql'] for query in ctx.captured_queries)
 
+    @pytest.mark.enable_quickfiles_creation
     @mock.patch('osf.utils.requests.settings.SELECT_FOR_UPDATE_ENABLED', False)
     def test_confirm_email_merge_select_for_update_disabled(self, user):
         mergee = UserFactory(username='foo@bar.com')
@@ -1341,7 +1344,7 @@ class TestRecentlyAdded:
 # New tests
 class TestTagging:
     def test_add_system_tag(self, user):
-        tag_name = fake.word()
+        tag_name = 'DJaxs is back!'
         user.add_system_tag(tag_name)
         user.save()
 
@@ -1464,6 +1467,7 @@ class TestMergingUsers:
         assert not master.collection_set.filter(id=dashnode.id).exists()
 
     # Note the files are merged, but the actual node stays with the dupe user
+    @pytest.mark.skip(reason='QuickfilesNode is deprecated this should be removed after migrations are run.')
     def test_quickfiles_node_arent_merged(self, dupe, master, merge_dupe):
         assert master.nodes.filter(type='osf.quickfilesnode').count() == 1
         assert dupe.nodes.filter(type='osf.quickfilesnode').count() == 1
@@ -1652,7 +1656,6 @@ class TestDisablingUsers(OsfTestCase):
 
 # Copied from tests/modes/test_user.py
 @pytest.mark.enable_quickfiles_creation
-@pytest.mark.enable_bookmark_creation
 class TestUser(OsfTestCase):
     def setUp(self):
         super(TestUser, self).setUp()
@@ -1749,6 +1752,7 @@ class TestUser(OsfTestCase):
         projects_contributed_to = self.user.nodes.all()
         assert list(self.user.contributed.all()) == list(projects_contributed_to)
 
+    @pytest.mark.enable_bookmark_creation
     def test_contributor_to_property(self):
         normal_node = ProjectFactory(creator=self.user)
         normal_contributed_node = ProjectFactory()
@@ -1774,6 +1778,7 @@ class TestUser(OsfTestCase):
         assert collection_node._id not in contributor_to_nodes
         assert group_project._id not in contributor_to_nodes
 
+    @pytest.mark.enable_bookmark_creation
     def test_contributor_or_group_member_to_property(self):
         normal_node = ProjectFactory(creator=self.user)
         normal_contributed_node = ProjectFactory()
@@ -1813,12 +1818,12 @@ class TestUser(OsfTestCase):
         project_three.save()
 
         user_nodes = self.user.all_nodes
-        assert user_nodes.count() == 3
+        assert user_nodes.count() == 2
         assert project in user_nodes
         assert project_two in user_nodes
         assert project_three not in user_nodes
-        assert QuickFilesNode.objects.get(creator=self.user) in user_nodes
 
+    @pytest.mark.enable_bookmark_creation
     def test_visible_contributor_to_property(self):
         invisible_contributor = UserFactory()
         normal_node = ProjectFactory(creator=invisible_contributor)
@@ -2114,6 +2119,14 @@ class TestUserMerging(OsfTestCase):
         assert other_user.merged_by._id == self.user._id
         assert mock_notify.called is False
 
+    def test_merge_user_logs(self):
+        other_user = UserFactory()
+        user_log = UserLogFactory(user=other_user)
+        user_log.save()
+
+        self.user.merge_user(other_user)
+        assert user_log in self.user.user_logs.all()
+
 
 @pytest.mark.enable_implicit_clean
 class TestUserValidation(OsfTestCase):
@@ -2302,7 +2315,6 @@ class TestUserValidation(OsfTestCase):
                 self.user.save()
 
 
-@pytest.mark.enable_quickfiles_creation
 class TestUserGdprDelete:
 
     @pytest.fixture()
@@ -2384,7 +2396,7 @@ class TestUserGdprDelete:
         assert user.is_disabled
         assert user.deleted is not None
 
-    def test_can_gdpr_delete_personal_nodes(self, user):
+    def test_can_gdpr_delete_personal_nodes(self, user, project):
 
         user.gdpr_delete()
 
@@ -2397,8 +2409,9 @@ class TestUserGdprDelete:
 
         user.gdpr_delete()
 
-        # The deleted user is still associated with the node, though their name still appears as 'Deleted User'
-        assert user.nodes.all().count() == 1
+        # The deleted user is no longer associated with the node, though their name still appears in logs ect as
+        # 'Deleted User'
+        assert user.nodes.all().count() == 0
 
     def test_cant_gdpr_delete_registrations(self, user, registration):
 

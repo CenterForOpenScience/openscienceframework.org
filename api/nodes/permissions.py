@@ -23,7 +23,7 @@ from api.base.utils import get_user_auth, is_deprecated, assert_resource_type
 
 class ContributorOrPublic(permissions.BasePermission):
 
-    acceptable_models = (AbstractNode, NodeRelation, Preprint, DraftRegistration)
+    acceptable_models = (AbstractNode, NodeRelation, Preprint, OSFUser, DraftRegistration)
 
     def has_object_permission(self, request, view, obj):
         from api.nodes.views import NodeStorageProvider
@@ -314,8 +314,8 @@ class ReadOnlyIfRegistration(permissions.BasePermission):
     acceptable_models = (AbstractNode,)
 
     def has_object_permission(self, request, view, obj):
-        # Preprints cannot be registrations
-        if isinstance(obj, Preprint):
+        # Preprints/OSFUsers cannot be registrations
+        if isinstance(obj, (Preprint, OSFUser)):
             return True
 
         if not isinstance(obj, AbstractNode):

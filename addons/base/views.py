@@ -152,7 +152,7 @@ permission_map = {
     'movefrom': permissions.WRITE,
 }
 
-def check_access(node, auth, action, cas_resp):
+def check_access(target, auth, action, cas_resp):
     """Verify that user can perform requested action on resource. Raise appropriate
     error code if action cannot proceed.
     """
@@ -162,24 +162,24 @@ def check_access(node, auth, action, cas_resp):
 
     if cas_resp:
         if permission == permissions.READ:
-            if node.can_view_files(auth=None):
+            if target.can_view_files(auth=None):
                 return True
-            required_scope = node.file_read_scope
+            required_scope = target.file_read_scope
         else:
-            required_scope = node.file_write_scope
+            required_scope = target.file_write_scope
 
         if not cas_resp.authenticated \
            or required_scope not in oauth_scopes.normalize_scopes(cas_resp.attributes['accessTokenScope']):
             raise HTTPError(http_status.HTTP_403_FORBIDDEN)
 
     if permission == permissions.READ:
-        if node.can_view_files(auth):
+        if target.can_view_files(auth):
             return True
         # The user may have admin privileges on a parent node, in which
         # case they should have read permissions
-        if getattr(node, 'is_registration', False) and node.registered_from.can_view(auth):
+        if getattr(target, 'is_registration', False) and target.registered_from.can_view(auth):
             return True
-    if permission == permissions.WRITE and node.can_edit(auth):
+    if permission == permissions.WRITE and target.can_edit(auth):
         return True
 
     # Users attempting to register projects with components might not have
@@ -193,9 +193,9 @@ def check_access(node, auth, action, cas_resp):
     # `node.is_registration` == True. However, we have no way of telling if
     # `copyfrom` actions are originating from a node being registered.
     # TODO This is raise UNAUTHORIZED for registrations that have not been archived yet
-    if isinstance(node, AbstractNode):
-        if action == 'copyfrom' or (action == 'upload' and node.is_registration):
-            parent = node.parent_node
+    if isinstance(target, AbstractNode):
+        if action == 'copyfrom' or (action == 'upload' and target.is_registration):
+            parent = target.parent_node
             while parent:
                 if parent.can_edit(auth):
                     return True
@@ -205,7 +205,7 @@ def check_access(node, auth, action, cas_resp):
         # from prereg challenge draft registrations.
         try:
             prereg_schema = RegistrationSchema.objects.get(name='Prereg Challenge', schema_version=2)
-            allowed_nodes = [node] + node.parents
+            allowed_nodes = [target] + target.parents
             prereg_draft_registration = DraftRegistration.objects.filter(
                 branched_from__in=allowed_nodes,
                 registration_schema=prereg_schema
@@ -292,16 +292,15 @@ def get_auth(auth, **kwargs):
     except KeyError:
         raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
 
-    node = AbstractNode.load(node_id) or Preprint.load(node_id)
-    if node and node.is_deleted:
-        raise HTTPError(http_status.HTTP_410_GONE)
-    elif not node:
-        raise HTTPError(http_status.HTTP_404_NOT_FOUND)
+    guid = Guid.load(node_id)
+    if guid is None:
+        raise HTTPError(httplib.NOT_FOUND)
+    target = guid.referent
 
-    check_access(node, auth, action, cas_resp)
+    check_access(target, auth, action, cas_resp)
     provider_settings = None
-    if hasattr(node, 'get_addon'):
-        provider_settings = node.get_addon(provider_name)
+    if target.has_node_addon:
+        provider_settings = target.get_addon(provider_name)
         if not provider_settings:
             raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
 
@@ -327,21 +326,21 @@ def get_auth(auth, **kwargs):
                 if auth.user:
                     # mark fileversion as seen
                     FileVersionUserMetadata.objects.get_or_create(user=auth.user, file_version=fileversion)
-                if not node.is_contributor_or_group_member(auth.user):
+                if target.counts_towards_analytics(auth.user):
                     from_mfr = download_is_from_mfr(request, payload=data)
                     # version index is 0 based
                     version_index = version - 1
                     if action == 'render':
-                        update_analytics(node, filenode, version_index, 'view')
+                        update_analytics(target, file_id, version_index, 'view')
                     elif action == 'download' and not from_mfr:
-                        update_analytics(node, filenode, version_index, 'download')
+                        update_analytics(target, file_id, version_index, 'download')
                     if waffle.switch_is_active(features.ELASTICSEARCH_METRICS):
-                        if isinstance(node, Preprint):
+                        if isinstance(target, Preprint):
                             metric_class = get_metric_class_for_action(action, from_mfr=from_mfr)
                             if metric_class:
                                 try:
                                     metric_class.record_for_preprint(
-                                        preprint=node,
+                                        preprint=target,
                                         user=auth.user,
                                         version=fileversion.identifier if fileversion else None,
                                         path=path
@@ -357,8 +356,8 @@ def get_auth(auth, **kwargs):
             )
     # If they haven't been set by version region, use the NodeSettings or Preprint directly
     if not (credentials and waterbutler_settings):
-        credentials = node.serialize_waterbutler_credentials(provider_name)
-        waterbutler_settings = node.serialize_waterbutler_settings(provider_name)
+        credentials = target.serialize_waterbutler_credentials(provider_name)
+        waterbutler_settings = target.serialize_waterbutler_settings(provider_name)
 
     if isinstance(credentials.get('token'), bytes):
         credentials['token'] = credentials.get('token').decode()
@@ -369,8 +368,8 @@ def get_auth(auth, **kwargs):
             'auth': make_auth(auth.user),  # A waterbutler auth dict not an Auth object
             'credentials': credentials,
             'settings': waterbutler_settings,
-            'callback_url': node.api_url_for(
-                ('create_waterbutler_log' if not getattr(node, 'is_registration', False) else 'registration_callbacks'),
+            'callback_url': target.api_url_for(
+                ('create_waterbutler_log' if not getattr(target, 'is_registration', False) else 'registration_callbacks'),
                 _absolute=True,
                 _internal=True
             )
@@ -404,7 +403,7 @@ def create_waterbutler_log(payload, **kwargs):
             if payload['action'] in DOWNLOAD_ACTIONS:
                 guid = Guid.load(payload['metadata'].get('nid'))
                 if guid:
-                    node = guid.referent
+                    target = guid.referent
                 return {'status': 'success'}
 
             user = OSFUser.load(auth['id'])
@@ -416,7 +415,8 @@ def create_waterbutler_log(payload, **kwargs):
             raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
 
         auth = Auth(user=user)
-        node = kwargs.get('node') or kwargs.get('project') or Preprint.load(kwargs.get('nid')) or Preprint.load(kwargs.get('pid'))
+        target_id = kwargs.get('nid') or kwargs.get('pid') or kwargs.get('node') or kwargs.get('project')
+        target = Guid.load(target_id).referent
 
         if action in (NodeLog.FILE_MOVED, NodeLog.FILE_COPIED):
 
@@ -442,49 +442,59 @@ def create_waterbutler_log(payload, **kwargs):
                 ):
                     action = LOG_ACTION_MAP['rename']
 
-            destination_node = node  # For clarity
-            source_node = AbstractNode.load(src['nid']) or Preprint.load(src['nid'])
+            destination_target = target  # For clarity
+            source_target = Guid.load(src['nid']).referent
 
             # We return provider fullname so we need to load node settings, if applicable
             source = None
-            if hasattr(source_node, 'get_addon'):
-                source = source_node.get_addon(payload['source']['provider'])
+            if hasattr(source_target, 'get_addon'):
+                source = source_target.get_addon(payload['source']['provider'])
             destination = None
-            if hasattr(node, 'get_addon'):
-                destination = node.get_addon(payload['destination']['provider'])
+            if hasattr(target, 'get_addon'):
+                destination = target.get_addon(payload['destination']['provider'])
+
+            if isinstance(source_target, OSFUser):
+                source_title = source_target.quickfolder.title
+            else:
+                source_title = source_target.title
+
+            if isinstance(destination_target, OSFUser):
+                destination_title = destination_target.quickfolder.title
+            else:
+                destination_title = destination_target.title
 
             payload['source'].update({
                 'materialized': payload['source']['materialized'].lstrip('/'),
                 'addon': source.config.full_name if source else 'osfstorage',
-                'url': source_node.web_url_for(
+                'url': source_target.web_url_for(
                     'addon_view_or_download_file',
                     path=payload['source']['path'].lstrip('/'),
                     provider=payload['source']['provider']
                 ),
                 'node': {
-                    '_id': source_node._id,
-                    'url': source_node.url,
-                    'title': source_node.title,
+                    '_id': source_target._id,
+                    'url': source_target.url,
+                    'title': source_title,
                 }
             })
 
             payload['destination'].update({
                 'materialized': payload['destination']['materialized'].lstrip('/'),
                 'addon': destination.config.full_name if destination else 'osfstorage',
-                'url': destination_node.web_url_for(
+                'url': destination_target.web_url_for(
                     'addon_view_or_download_file',
                     path=payload['destination']['path'].lstrip('/'),
                     provider=payload['destination']['provider']
                 ),
                 'node': {
-                    '_id': destination_node._id,
-                    'url': destination_node.url,
-                    'title': destination_node.title,
+                    '_id': destination_target._id,
+                    'url': destination_target.url,
+                    'title': destination_title,
                 }
             })
 
             if not payload.get('errors'):
-                destination_node.add_log(
+                destination_target.add_log(
                     action=action,
                     auth=auth,
                     params=payload
@@ -496,8 +506,8 @@ def create_waterbutler_log(payload, **kwargs):
                     mails.FILE_OPERATION_FAILED if payload.get('errors')
                     else mails.FILE_OPERATION_SUCCESS,
                     action=payload['action'],
-                    source_node=source_node,
-                    destination_node=destination_node,
+                    source_node=source_target,
+                    destination_node=destination_target,
                     source_path=payload['source']['materialized'],
                     source_addon=payload['source']['addon'],
                     destination_addon=payload['destination']['addon'],
@@ -510,10 +520,10 @@ def create_waterbutler_log(payload, **kwargs):
                 return {'status': 'success'}
 
         else:
-            node.create_waterbutler_log(auth, action, payload)
+            target.create_waterbutler_log(auth, action, payload)
 
     with transaction.atomic():
-        file_signals.file_updated.send(target=node, user=user, event_type=action, payload=payload)
+        file_signals.file_updated.send(target=target, user=user, event_type=action, payload=payload)
 
     return {'status': 'success'}
 
@@ -689,7 +699,7 @@ def addon_view_or_download_file(auth, path, provider, **kwargs):
     extras = request.args.to_dict()
     extras.pop('_', None)  # Clean up our url params a bit
     action = extras.get('action', 'view')
-    guid = kwargs.get('guid')
+    guid = kwargs.get('guid') or kwargs.get('pid')
     guid_target = getattr(Guid.load(guid), 'referent', None)
     target = guid_target or kwargs.get('node') or kwargs['project']
 
@@ -699,8 +709,7 @@ def addon_view_or_download_file(auth, path, provider, **kwargs):
     if not path:
         raise HTTPError(http_status.HTTP_400_BAD_REQUEST)
 
-    if hasattr(target, 'get_addon'):
-
+    if target.has_node_addon:
         node_addon = target.get_addon(provider)
 
         if not isinstance(node_addon, BaseStorageAddon):

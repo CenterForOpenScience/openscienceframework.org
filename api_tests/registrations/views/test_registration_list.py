@@ -33,7 +33,6 @@ from osf.utils import permissions
 SCHEMA_VERSION = 2
 
 
-@pytest.mark.enable_quickfiles_creation
 class TestRegistrationList(ApiTestCase):
 
     def setUp(self):

@@ -16,7 +16,7 @@ from website.notifications.events.base import (
     register, Event, event_registry, RegistryError
 )
 from website.notifications.events import utils as event_utils
-from osf.models import AbstractNode, NodeLog, Preprint
+from osf.models import NodeLog, Preprint, Guid
 from addons.base.signals import file_updated as signal
 
 
@@ -120,7 +120,8 @@ class ComplexFileEvent(FileEvent):
         super(ComplexFileEvent, self).__init__(user, node, event, payload=payload)
 
         source_nid = self.payload['source']['node']['_id']
-        self.source_node = AbstractNode.load(source_nid) or Preprint.load(source_nid)
+        target = getattr(Guid.load(source_nid), 'referent', None)
+        self.source_node = target
         self.addon = self.node.get_addon(self.payload['destination']['provider'])
 
     def _build_message(self, html=False):

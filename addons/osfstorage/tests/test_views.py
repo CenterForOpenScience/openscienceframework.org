@@ -27,13 +27,13 @@ from framework.auth import cas
 from api.caching.utils import storage_usage_cache
 
 from osf import features
-from osf.models import Tag, QuickFilesNode
+from osf.models import Tag
 from osf.models import files as models
 from addons.osfstorage.apps import osf_storage_root
 from addons.osfstorage import utils
 from addons.base.views import make_auth, addon_view_file
 from addons.osfstorage import settings as storage_settings
-from api_tests.utils import create_test_file, create_test_preprint_file
+from api_tests.utils import create_test_file, create_test_quickfile, create_test_preprint_file
 from api.caching.settings import STORAGE_USAGE_KEY
 
 from osf_tests.factories import ProjectFactory, ApiOAuth2PersonalTokenFactory, PreprintFactory
@@ -1037,7 +1037,6 @@ class TestDeleteHookPreprint(TestDeleteHookNode):
         assert_equal(res.status_code, 200)
 
 @pytest.mark.django_db
-@pytest.mark.enable_quickfiles_creation
 class TestMoveHook(HookTestCase):
 
     def setUp(self):
@@ -1170,7 +1169,7 @@ class TestMoveHook(HookTestCase):
             expect_errors=True,
         )
         assert_equal(res.status_code, 200)
-
+        
     def test_can_rename_file(self):
         file = create_test_file(self.node, self.user, filename='road_dogg.mp3')
         new_name = 'JesseJames.mp3'
@@ -1201,17 +1200,15 @@ class TestMoveHook(HookTestCase):
         assert_equal(file.versions.first().get_basefilenode_version(file).version_name, new_name)
 
     def test_can_move_file_out_of_quickfiles_node(self):
-        quickfiles_node = QuickFilesNode.objects.get_for_user(self.user)
-        quickfiles_file = create_test_file(quickfiles_node, self.user, filename='slippery.mp3')
-        quickfiles_folder = OsfStorageFolder.objects.get_root(target=quickfiles_node)
+        quickfiles_file = create_test_quickfile(self.user, filename='slippery.mp3')
         dest_folder = OsfStorageFolder.objects.get_root(target=self.project)
 
         res = self.send_hook(
             'osfstorage_move_hook',
-            {'guid': quickfiles_node._id},
+            {'guid': self.user._id},
             payload={
                 'source': quickfiles_file._id,
-                'target': quickfiles_node._id,
+                'target': self.user._id,
                 'user': self.user._id,
                 'destination': {
                     'parent': dest_folder._id,
@@ -1219,41 +1216,33 @@ class TestMoveHook(HookTestCase):
                     'name': dest_folder.name,
                 }
             },
-            target=quickfiles_node,
+            target=self.user._id,
             method='post_json',
         )
         assert_equal(res.status_code, 200)
 
-    def test_can_rename_file_in_quickfiles_node(self):
-        quickfiles_node = QuickFilesNode.objects.get_for_user(self.user)
-        quickfiles_file = create_test_file(quickfiles_node, self.user, filename='road_dogg.mp3')
-        quickfiles_folder = OsfStorageFolder.objects.get_root(target=quickfiles_node)
-        dest_folder = OsfStorageFolder.objects.get_root(target=self.project)
+    @pytest.mark.enable_quickfiles_creation
+    def test_can_rename_file_in_quickfiles_node_v1(self):
+        file_node = create_test_quickfile(self.user, filename='slippery.mp3')
+
         new_name = 'JesseJames.mp3'
 
-        res = self.send_hook(
-            'osfstorage_move_hook',
-            {'guid': quickfiles_node._id},
-            payload={
-                'action': 'rename',
-                'source': quickfiles_file._id,
-                'target': quickfiles_node._id,
-                'user': self.user._id,
-                'name': quickfiles_file.name,
-                'destination': {
-                    'parent': quickfiles_folder._id,
-                    'target': quickfiles_node._id,
-                    'name': new_name,
-                }
-            },
-            target=quickfiles_node,
-            method='post_json',
-            expect_errors=True,
-        )
-        quickfiles_file.reload()
+        payload = {
+            'source': file_node._id,
+            'target': self.user._id,
+            'user': self.user._id,
+            'destination': {
+                'parent': self.user.quickfolder._id,
+                'target': self.user._id,
+                'name': new_name,
+            }
+        }
+        url = '/api/v1/{}/osfstorage/hooks/move/'.format(self.user._id)
 
-        assert_equal(res.status_code, 200)
-        assert_equal(quickfiles_file.name, new_name)
+        res = self.app.post_json(url, signing.sign_data(signing.default_signer, payload), expect_errors=True)
+        assert res.status_code == 200
+        assert file_node in self.user.quickfiles.all()
+        assert file_node == self.user.quickfiles.get(name=new_name)
 
 
 @pytest.mark.django_db
@@ -1402,29 +1391,28 @@ class TestCopyHook(HookTestCase):
         super(TestCopyHook, self).setUp()
         self.root_node = self.node_settings.get_root()
 
-    @pytest.mark.enable_implicit_clean
+    @pytest.mark.enable_quickfiles_creation
     def test_can_copy_file_out_of_quickfiles_node(self):
-        quickfiles_node = QuickFilesNode.objects.get_for_user(self.user)
-        quickfiles_folder = OsfStorageFolder.objects.get_root(target=quickfiles_node)
-        dest_folder = OsfStorageFolder.objects.get_root(target=self.project)
+        file_node = create_test_quickfile(self.user, filename='slippery.mp3')
+        dest_folder = OsfStorageFolder.objects.get_root(target=self.root_node.target)
 
-        res = self.send_hook(
-            'osfstorage_copy_hook',
-            {'guid': quickfiles_node._id},
-            payload={
-                'source': quickfiles_folder._id,
-                'target': quickfiles_node._id,
-                'user': self.user._id,
-                'destination': {
-                    'parent': dest_folder._id,
-                    'target': self.project._id,
-                    'name': dest_folder.name,
-                }
-            },
-            target=self.project,
-            method='post_json',
-        )
-        assert_equal(res.status_code, 201)
+        url = '/api/v1/{}/osfstorage/hooks/copy/'.format(self.user._id)
+
+        payload = {
+            'source': file_node._id,
+            'target': self.user._id,
+            'user': self.user._id,
+            'destination': {
+                'parent': dest_folder._id,
+                'target': self.root_node.target._id,
+                'name': dest_folder.name,
+            }
+        }
+        res = self.app.post_json(url, signing.sign_data(signing.default_signer, payload))
+        assert res.status_code == 201
+
+        assert file_node in self.user.quickfiles.all()
+        assert file_node.name == self.root_node.target.files.last().name
 
     @pytest.mark.enable_implicit_clean
     def test_copy_hook_updates_cache(self):
@@ -1467,8 +1455,6 @@ class TestCopyHook(HookTestCase):
         assert storage_usage_cache.get(destination) == 123
 
         assert_equal(res.status_code, 201)
-
-
 
 @pytest.mark.django_db
 class TestFileTags(StorageTestCase):

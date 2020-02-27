@@ -17,6 +17,7 @@ from include import IncludeManager
 
 from framework.analytics import get_basic_counters
 from framework import sentry
+from osf.models import Guid
 from osf.models.base import BaseModel, OptionalGuidMixin, ObjectIDMixin
 from osf.models.comment import CommentableMixin
 from osf.models.mixins import Taggable
@@ -48,6 +49,7 @@ class BaseFileNodeManager(TypedModelManager, IncludeManager):
         if hasattr(self.model, '_provider') and self.model._provider is not None:
             return qs.filter(provider=self.model._provider)
         return qs
+
 
 class ActiveFileNodeManager(Manager):
     """Manager that filters out TrashedFileNodes.
@@ -132,6 +134,15 @@ class BaseFileNode(TypedModel, CommentableMixin, OptionalGuidMixin, Taggable, Ob
         return isinstance(self, (File, TrashedFile))
 
     @property
+    def is_quickfile(self):
+        if self.type == 'osf.quickfolder':
+            return True
+        elif self.parent and self.parent.type == 'osf.quickfolder':
+            return True
+        else:
+            return False
+
+    @property
     def path(self):
         return self._path
 
@@ -187,6 +198,31 @@ class BaseFileNode(TypedModel, CommentableMixin, OptionalGuidMixin, Taggable, Ob
     def create(cls, **kwargs):
         kwargs.update(provider=cls._provider)
         return cls(**kwargs)
+
+    @classmethod
+    def get_from_target(cls, _id, target):
+        """
+        This gets file from a target with the `_id` for that file.
+        :param _id: the file id
+        :param target: the file target model, whether it be Node, Preprint etc.
+        :return: BaseFileNode
+        """
+        return cls.active.get(_id=_id,
+                              target_object_id=target.id,
+                              target_content_type=ContentType.objects.get_for_model(target))
+
+    @classmethod
+    def get_from_target_guid(cls, _id, target_id):
+        """
+        This gets file from a target with the `_id` for that file using that targets guid.
+        :param _id: the file id
+        :param target_id: the file target's guid, the target could be Node, Preprint etc.
+        :return: BaseFileNode
+        """
+        target = Guid.load(target_id).referent
+        return cls.active.get(_id=_id,
+                              target_object_id=target.id,
+                              target_content_type=ContentType.objects.get_for_model(target))
 
     @classmethod
     def get_or_create(cls, target, path):
@@ -323,7 +359,7 @@ class BaseFileNode(TypedModel, CommentableMixin, OptionalGuidMixin, Taggable, Ob
         :param str or None auth_header: If truthy it will set as the Authorization header
         :returns: None if the file is not found otherwise FileVersion or (version, Error HTML)
         """
-        # Resvolve primary key on first touch
+        # Resolve primary key on first touch
         self.save()
         # For backwards compatibility
         revision = revision or kwargs.get(self.version_identifier)
@@ -448,7 +484,7 @@ class BaseFileNode(TypedModel, CommentableMixin, OptionalGuidMixin, Taggable, Ob
 
     def _serialize(self, **kwargs):
         return {
-            'id': self._id,
+            'id': str(self._id),
             'path': self.path,
             'name': self.name,
             'kind': self.kind,
@@ -570,6 +606,7 @@ class File(models.Model):
         """
         return None
 
+
 class Folder(models.Model):
 
     class Meta:
@@ -642,8 +679,7 @@ class TrashedFileNode(BaseFileNode):
     _provider = None
 
     def delete(self, user=None, parent=None, save=True, deleted_on=None):
-        if isinstance(self, TrashedFileNode):  # TODO Why is this needed
-            raise UnableToDelete('You cannot delete things that are deleted.')
+        raise UnableToDelete('You cannot delete things that are deleted.')
 
     def restore(self, recursive=True, parent=None, save=True, deleted_on=None):
         """

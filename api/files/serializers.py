@@ -396,7 +396,7 @@ class FileDetailSerializer(FileSerializer):
 class QuickFilesSerializer(BaseFileSerializer):
     user = RelationshipField(
         related_view='users:user-detail',
-        related_view_kwargs={'user_id': '<target.creator._id>'},
+        related_view_kwargs={'user_id': '<target._id>'},
         help_text='The user who uploaded this file',
     )
 

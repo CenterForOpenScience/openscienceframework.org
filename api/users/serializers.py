@@ -18,7 +18,8 @@ from api.base.utils import absolute_reverse, get_user_auth, waterbutler_api_url_
 from api.files.serializers import QuickFilesSerializer
 from osf.models import Email
 from osf.exceptions import ValidationValueError, ValidationError, BlacklistedEmailError
-from osf.models import OSFUser, QuickFilesNode, Preprint
+
+from osf.models import OSFUser, Preprint
 from osf.utils.requests import string_type_request_headers
 from website.settings import MAILCHIMP_GENERAL_LIST, OSF_HELP_LIST, CONFIRM_REGISTRATIONS_BY_EMAIL
 from osf.models.provider import AbstractProviderGroupObjectPermission
@@ -33,8 +34,7 @@ class QuickFilesRelationshipField(RelationshipField):
 
     def to_representation(self, value):
         relationship_links = super(QuickFilesRelationshipField, self).to_representation(value)
-        quickfiles_guid = value.nodes_created.filter(type=QuickFilesNode._typedmodels_type).values_list('guids___id', flat=True).get()
-        upload_url = waterbutler_api_url_for(quickfiles_guid, 'osfstorage')
+        upload_url = waterbutler_api_url_for(value._id, 'osfstorage')
         relationship_links['links']['upload'] = {
             'href': upload_url,
             'meta': {},
@@ -194,7 +194,7 @@ class UserSerializer(JSONAPISerializer):
         return default_queryset.count()
 
     def get_quickfiles_count(self, obj):
-        return QuickFilesNode.objects.get(contributor__user__id=obj.id).files.filter(type='osf.osfstoragefile').count()
+        return obj.quickfiles.count()
 
     def get_registration_count(self, obj):
         auth = get_user_auth(self.context['request'])

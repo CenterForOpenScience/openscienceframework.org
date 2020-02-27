@@ -10,6 +10,7 @@ from osf.models.node import AbstractNode, Node  # noqa
 from osf.models.sanctions import Sanction, Embargo, Retraction, RegistrationApproval, DraftRegistrationApproval, EmbargoTerminationApproval  # noqa
 from osf.models.registrations import Registration, DraftRegistrationLog, DraftRegistration  # noqa
 from osf.models.nodelog import NodeLog  # noqa
+from osf.models.userlog import UserLog  # noqa
 from osf.models.preprintlog import PreprintLog  # noqa
 from osf.models.tag import Tag  # noqa
 from osf.models.comment import Comment  # noqa
@@ -43,10 +44,11 @@ from osf.models.admin_profile import AdminProfile  # noqa
 from osf.models.admin_log_entry import AdminLogEntry  # noqa
 from osf.models.maintenance_state import MaintenanceState  # noqa
 from osf.models.banner import ScheduledBanner  # noqa
-from osf.models.quickfiles import QuickFilesNode  # noqa
 from osf.models.dismissed_alerts import DismissedAlert  # noqa
 from osf.models.action import ReviewAction  # noqa
 from osf.models.action import NodeRequestAction, PreprintRequestAction, ReviewAction  # noqa
 from osf.models.storage import ProviderAssetFile  # noqa
 from osf.models.chronos import ChronosJournal, ChronosSubmission  # noqa
 from osf.models.blacklisted_email_domain import BlacklistedEmailDomain  # noqa
+from osf.models.quickfolder import QuickFolder  # noqa
+from osf.models.legacy_quickfiles import QuickFilesNode  # noqa

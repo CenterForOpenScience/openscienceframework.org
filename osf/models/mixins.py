@@ -1,3 +1,5 @@
+from abc import abstractmethod, abstractproperty
+
 import pytz
 import markupsafe
 import logging
@@ -93,7 +95,6 @@ class Loggable(models.Model):
     last_logged = NonNaiveDateTimeField(db_index=True, null=True, blank=True, default=timezone.now)
 
     def add_log(self, action, params, auth, foreign_user=None, log_date=None, save=True, request=None):
-        AbstractNode = apps.get_model('osf.AbstractNode')
         user = None
         if auth:
             user = auth.user
@@ -101,34 +102,40 @@ class Loggable(models.Model):
             user = request.user
 
         params['node'] = params.get('node') or params.get('project') or self._id
-        original_node = self if self._id == params['node'] else AbstractNode.load(params.get('node'))
 
-        log = NodeLog(
-            action=action, user=user, foreign_user=foreign_user,
-            params=params, node=self, original_node=original_node
-        )
+        log_params = {
+            'action': action,
+            'user': user,
+            'foreign_user': foreign_user,
+            'params': params,
+        }
+
+        log = NodeLog(**log_params)
 
         if log_date:
             log.date = log_date
         log.save()
 
-        self._complete_add_log(log, action, user, save)
+        self._complete_add_log(log, self.logs, action, user, save)
 
         return log
 
-    def _complete_add_log(self, log, action, user=None, save=True):
-        if self.logs.count() == 1:
+    def _complete_add_log(self, log, logs, action, user=None, save=True):
+        if logs.count() == 1:
             log_date = log.date if hasattr(log, 'date') else log.created
             self.last_logged = log_date.replace(tzinfo=pytz.utc)
         else:
-            recent_log = self.logs.first()
+            recent_log = logs.first()
             log_date = recent_log.date if hasattr(log, 'date') else recent_log.created
             self.last_logged = log_date
 
         if save:
             self.save()
+
         if user and not getattr(self, 'is_collection', None):
             increment_user_activity_counters(user._primary_key, action, self.last_logged.isoformat())
+
+        return log
 
     class Meta:
         abstract = True
@@ -2036,7 +2043,7 @@ class SpamOverrideMixin(SpamMixin):
 
             # Make public nodes private from this contributor
             for node in user.all_nodes:
-                if self._id != node._id and len(node.contributors) == 1 and node.is_public and not node.is_quickfiles:
+                if self._id != node._id and len(node.contributors) == 1 and node.is_public:
                     node.set_privacy('private', log=False, save=True)
 
             # Make preprints private from this contributor
@@ -2059,7 +2066,75 @@ class SpamOverrideMixin(SpamMixin):
             log.should_hide = True
             log.save()
 
+            
+class FileTargetMixin(Loggable):
+    '''
+    The purpose of this mixin to ensure models that are file `targets` (meaning a group of files are assocciated with
+    them.) Have all the methods they need to interact with BaseFileNode objects without errors or gaps in functionality
 
+    File targets must have four basic things:
+
+    1. Logs
+    2. Permissions
+    3. Resolvable urls
+    4. Spam status
+
+    Since each model is going to have different criteria for these things, so this a very abstract class, but since everything
+    that's a target needs all these things it's good to require these methods as part of a class to avoid missing any
+    aspects of targethood.
+    '''
+
+    class Meta:
+        abstract = True
+
+    @property
+    def has_node_addon(self):
+        addon = getattr(self, 'get_addon', None)
+        if addon:
+            from addons.base.models import BaseNodeSettings
+            return isinstance(addon('osfstorage'), BaseNodeSettings)
+        return False
+
+    @abstractmethod
+    def get_root_folder(self, provider='osfstorage'):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def api_url_for(self, view_name, _absolute=False, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def web_url_for(self, view_name, _absolute=False, _guid=False, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def serialize_waterbutler_settings(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def serialize_waterbutler_credentials(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def create_waterbutler_log(self, auth, action, metadata):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def counts_towards_analytics(self, user):
+        raise NotImplementedError()
+
+    @abstractproperty
+    def is_spam(self):
+        raise NotImplementedError()
+
+    @abstractproperty
+    def is_public(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def can_view_files(self, auth=None):
+        return self.can_view(auth)
+      
 class RegistrationResponseMixin(models.Model):
     """
     Mixin to be shared between DraftRegistrations and Registrations.
@@ -2172,3 +2247,4 @@ class EditableFieldsMixin(TitleMixin, DescriptionMixin, CategoryMixin, Contribut
 
     class Meta:
         abstract = True
+

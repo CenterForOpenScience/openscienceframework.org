@@ -23,12 +23,7 @@ def get_file_object(target, path, provider, request):
         # Kinda like /me for a user
         # The one odd case where path is not really path
         if path == '/':
-            if isinstance(target, AbstractNode):
-                obj = target.get_addon('osfstorage').get_root()
-            elif isinstance(target, Preprint):
-                obj = target.root_folder
-            else:
-                obj = target
+            obj = target.get_root_folder(provider=provider)
         else:
             if path.endswith('/'):
                 model = OsfStorageFolder

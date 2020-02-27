@@ -63,7 +63,7 @@ _MOCKS = {
         'mark': 'enable_bookmark_creation',
         'replacement': lambda *args, **kwargs: None,
     },
-    'osf.models.user._create_quickfiles_project': {
+    'osf.models.user._create_quickfiles': {
         'mark': 'enable_quickfiles_creation',
         'replacement': lambda *args, **kwargs: None,
     },

@@ -12,7 +12,7 @@ from api.base.serializers import (
     HideIfNotRegistrationPointerLog,
 )
 
-from osf.models import OSFUser, AbstractNode, Preprint
+from osf.models import OSFUser, AbstractNode, Preprint, Guid
 from osf.utils.names import impute_names_model
 from osf.utils import permissions as osf_permissions
 
@@ -38,7 +38,7 @@ class NodeLogFileParamsSerializer(RestrictedDictSerializer):
     def get_node_title(self, obj):
         user = self.context['request'].user
         node_title = obj['node']['title']
-        node = AbstractNode.load(obj['node']['_id']) or Preprint.load(obj['node']['_id'])
+        node = Guid.load(obj['node']['_id']).referent
         if not user.is_authenticated:
             if node.is_public:
                 return node_title

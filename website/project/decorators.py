@@ -12,7 +12,7 @@ from framework.exceptions import HTTPError, TemplateHTTPError
 from framework.auth.decorators import collect_auth
 from framework.database import get_or_http_error
 
-from osf.models import AbstractNode, Guid, Preprint, OSFGroup
+from osf.models import AbstractNode, Guid, Preprint, OSFGroup, OSFUser
 from osf.utils.permissions import WRITE
 from website import language
 from website.util import web_url_for
@@ -22,10 +22,8 @@ _load_node_or_fail = lambda pk: get_or_http_error(AbstractNode, pk)
 
 def _kwargs_to_nodes(kwargs):
     """Retrieve project and component objects from keyword arguments.
-
     :param dict kwargs: Dictionary of keyword arguments
     :return: Tuple of parent and node
-
     """
     node = kwargs.get('node') or kwargs.get('project')
     parent = kwargs.get('parent')
@@ -86,16 +84,19 @@ def must_be_valid_project(func=None, retractions_valid=False, quickfiles_valid=F
         def wrapped(*args, **kwargs):
             if preprints_valid and Preprint.load(kwargs.get('pid')):
                 _inject_nodes(kwargs)
-
                 return func(*args, **kwargs)
 
             if groups_valid and OSFGroup.load(kwargs.get('pid')):
                 kwargs['node'] = OSFGroup.load(kwargs.get('pid'))
                 return func(*args, **kwargs)
 
+            if quickfiles_valid and OSFUser.load(kwargs.get('pid')):
+                kwargs['node'] = OSFUser.load(kwargs.get('pid'))
+                return func(*args, **kwargs)
+
             _inject_nodes(kwargs)
 
-            if getattr(kwargs['node'], 'is_collection', True) or (getattr(kwargs['node'], 'is_quickfiles', True) and not quickfiles_valid):
+            if getattr(kwargs['node'], 'is_collection', True):
                 raise HTTPError(
                     http_status.HTTP_404_NOT_FOUND
                 )
@@ -266,11 +267,9 @@ def _must_be_contributor_factory(include_public, include_view_only_anon=True, in
     """Decorator factory for authorization wrappers. Decorators verify whether
     the current user is a contributor on the current project, or optionally
     whether the current project is public.
-
     :param bool include_public: Check whether current project is public
     :param bool include_view_only_anon: Checks view_only anonymized links
     :return: Authorization decorator
-
     """
     def wrapper(func):
         @functools.wraps(func)

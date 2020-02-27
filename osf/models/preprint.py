@@ -24,8 +24,8 @@ from framework.auth import oauth_scopes
 from osf.models import Subject, Tag, OSFUser, PreprintProvider
 from osf.models.preprintlog import PreprintLog
 from osf.models.contributor import PreprintContributor
-from osf.models.mixins import ReviewableMixin, Taggable, Loggable, GuardianMixin
-from osf.models.validators import validate_doi
+from osf.models.mixins import ReviewableMixin, Taggable, GuardianMixin, FileTargetMixin, Loggable
+from osf.models.validators import validate_subject_hierarchy, validate_title, validate_doi
 from osf.utils.fields import NonNaiveDateTimeField
 from osf.utils.workflows import DefaultStates, ReviewStates
 from osf.utils import sanitize
@@ -103,7 +103,7 @@ class PreprintManager(IncludeManager):
 
 
 class Preprint(DirtyFieldsMixin, GuidMixin, IdentifierMixin, ReviewableMixin, BaseModel, TitleMixin, DescriptionMixin,
-        Loggable, Taggable, ContributorMixin, GuardianMixin, SpamOverrideMixin, TaxonomizableMixin):
+        Loggable, Taggable, ContributorMixin, GuardianMixin, SpamOverrideMixin, TaxonomizableMixin, FileTargetMixin):
 
     objects = PreprintManager()
     # Preprint fields that trigger a check to the spam filter on save
@@ -390,10 +390,12 @@ class Preprint(DirtyFieldsMixin, GuidMixin, IdentifierMixin, ReviewableMixin, Ba
 
         return csl
 
+    # Overrides FileTargetMixin
     def web_url_for(self, view_name, _absolute=False, _guid=False, *args, **kwargs):
         return web_url_for(view_name, pid=self._id,
                            _absolute=_absolute, _guid=_guid, *args, **kwargs)
 
+    # Overrides FileTargetMixin
     def api_url_for(self, view_name, _absolute=False, *args, **kwargs):
         return api_url_for(view_name, pid=self._id, _absolute=_absolute, *args, **kwargs)
 
@@ -416,9 +418,10 @@ class Preprint(DirtyFieldsMixin, GuidMixin, IdentifierMixin, ReviewableMixin, Ba
 
         log.save()
 
-        self._complete_add_log(log, action, user, save)
+        self._complete_add_log(log, self.logs, action, user, save)
         return log
 
+    # Overrides FileTargetMixin
     def can_view_files(self, auth=None):
         if self.is_retracted:
             return False
@@ -837,6 +840,7 @@ class Preprint(DirtyFieldsMixin, GuidMixin, IdentifierMixin, ReviewableMixin, Ba
             logger.exception(e)
             log_exception()
 
+    # Overrides FileTargetMixin
     def serialize_waterbutler_settings(self, provider_name=None):
         """
         Since preprints don't have addons, this method has been pulled over from the
@@ -853,6 +857,7 @@ class Preprint(DirtyFieldsMixin, GuidMixin, IdentifierMixin, ReviewableMixin, Ba
             )
         })
 
+    # Overrides FileTargetMixin
     def serialize_waterbutler_credentials(self, provider_name=None):
         """
         Since preprints don't have addons, this method has been pulled over from the
@@ -860,6 +865,7 @@ class Preprint(DirtyFieldsMixin, GuidMixin, IdentifierMixin, ReviewableMixin, Ba
         """
         return Region.objects.get(id=self.region_id).waterbutler_credentials
 
+    # Overrides FileTargetMixin
     def create_waterbutler_log(self, auth, action, payload):
         """
         Since preprints don't have addons, this method has been pulled over from the
@@ -886,6 +892,13 @@ class Preprint(DirtyFieldsMixin, GuidMixin, IdentifierMixin, ReviewableMixin, Ba
             params=params
         )
 
+    # Overrides FileTargetMixin
+    def counts_towards_analytics(self, user):
+        return not self.is_contributor(user)
+
+    # Overrides FileTargetMixin
+    def get_root_folder(self, provider='osfstorage'):
+        return self.root_folder
 
 @receiver(post_save, sender=Preprint)
 def create_file_node(sender, instance, **kwargs):

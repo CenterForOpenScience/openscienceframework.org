@@ -43,15 +43,16 @@ from osf.models.collection import CollectionSubmission
 
 from osf.models.identifiers import Identifier, IdentifierMixin
 from osf.models.licenses import NodeLicenseRecord
-from osf.models.mixins import (AddonModelMixin, CommentableMixin, Loggable, GuardianMixin,
-                               NodeLinkMixin, SpamOverrideMixin, RegistrationResponseMixin,
-                               EditableFieldsMixin)
+from osf.models.mixins import (AddonModelMixin, CommentableMixin, Taggable, Loggable, GuardianMixin,
+                               NodeLinkMixin, SpamOverrideMixin, RegistrationResponseMixin, ContributorMixin
+                               EditableFieldsMixin, TaxonomizableMixin)
 from osf.models.node_relation import NodeRelation
 from osf.models.nodelog import NodeLog
 from osf.models.sanctions import RegistrationApproval
 from osf.models.private_link import PrivateLink
 from osf.models.tag import Tag
 from osf.models.user import OSFUser
+from osf.models.mixins import FileTargetMixin
 from osf.models.validators import validate_title, validate_doi
 from framework.auth.core import Auth
 from osf.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
@@ -464,10 +465,6 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
         return False
 
     @property
-    def is_quickfiles(self):
-        return False
-
-    @property
     def is_original(self):
         return not self.is_registration and not self.is_fork
 
@@ -633,10 +630,12 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
     def nodes_active(self):
         return self._nodes.filter(is_deleted=False)
 
+    # Overrides FileTargetMixin
     def web_url_for(self, view_name, _absolute=False, _guid=False, *args, **kwargs):
         return web_url_for(view_name, pid=self._primary_key,
                            _absolute=_absolute, _guid=_guid, *args, **kwargs)
 
+    # Overrides FileTargetMixin
     def api_url_for(self, view_name, _absolute=False, *args, **kwargs):
         return api_url_for(view_name, pid=self._primary_key, _absolute=_absolute, *args, **kwargs)
 
@@ -1262,6 +1261,10 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
     @property
     def private_link_keys_deleted(self):
         return self.private_links.filter(is_deleted=True).values_list('key', flat=True)
+
+    # Overrides FileTargetMixin
+    def get_root_folder(self, provider='osfstorage'):
+        return self.get_addon(provider).get_root()
 
     def get_root(self):
         sql = """
@@ -2097,10 +2100,10 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
                     continue
             # Title, description, and category have special methods for logging purposes
             if key == 'title':
-                if not self.is_bookmark_collection or not self.is_quickfiles:
+                if not self.is_bookmark_collection:
                     self.set_title(title=value, auth=auth, save=False)
                 else:
-                    raise NodeUpdateError(reason='Bookmark collections or QuickFilesNodes cannot be renamed.', key=key)
+                    raise NodeUpdateError(reason='Bookmark collections cannot be renamed.', key=key)
             elif key == 'description':
                 self.set_description(description=value, auth=auth, save=False)
             elif key == 'category':
@@ -2296,12 +2299,15 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
     def is_registration_of(self, other):
         return self.is_derived_from(other, 'registered_from')
 
+    # Overrides FileTargetMixin
     def serialize_waterbutler_credentials(self, provider_name):
         return self.get_addon(provider_name).serialize_waterbutler_credentials()
 
+    # Overrides FileTargetMixin
     def serialize_waterbutler_settings(self, provider_name):
         return self.get_addon(provider_name).serialize_waterbutler_settings()
 
+    # Overrides FileTargetMixin
     def create_waterbutler_log(self, auth, action, payload):
         try:
             metadata = payload['metadata']
@@ -2316,9 +2322,36 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
 
         return node_addon.create_waterbutler_log(auth, action, metadata)
 
-    def can_view_files(self, auth=None):
-        return self.can_view(auth)
+    # Overrides Loggable
+    def add_log(self, action, params, auth, foreign_user=None, log_date=None, save=True, request=None):
+        AbstractNode = apps.get_model('osf.AbstractNode')
+        user = None
+        if auth:
+            user = auth.user
+        elif request:
+            user = request.user
 
+        params['node'] = params.get('node') or params.get('project') or self._id
+        original_node = self if self._id == params['node'] else AbstractNode.load(params.get('node'))
+
+        log_params = {
+            'action': action,
+            'user': user,
+            'foreign_user': foreign_user,
+            'params': params,
+            'node': self,
+            'original_node': original_node,
+        }
+
+        log = NodeLog(**log_params)
+
+        if log_date:
+            log.date = log_date
+        log.save()
+
+        self._complete_add_log(log, self.logs, action, user, save)
+
+        return log
     @property
     def file_read_scope(self):
         return oauth_scopes.CoreScopes.NODE_FILE_READ
@@ -2367,6 +2400,10 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
         else:
             update_storage_usage(self)  # sets cache
             return storage_usage_cache.get(key)
+
+    # Overrides FileTargetMixin
+    def counts_towards_analytics(self, user):
+        return not self.is_contributor_or_group_member(user)
 
 
 class NodeUserObjectPermission(UserObjectPermissionBase):
@@ -2457,7 +2494,6 @@ def add_default_node_addons(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Node)
 @receiver(post_save, sender='osf.Registration')
-@receiver(post_save, sender='osf.QuickFilesNode')
 @receiver(post_save, sender='osf.DraftNode')
 def set_parent_and_root(sender, instance, created, *args, **kwargs):
     if getattr(instance, '_parent', None):

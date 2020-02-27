@@ -311,7 +311,7 @@ def resolve_guid(guid, suffix=None):
         if isinstance(referent, DraftNode):
             raise HTTPError(http_status.HTTP_404_NOT_FOUND)
 
-        if isinstance(referent, BaseFileNode) and referent.is_file and (getattr(referent.target, 'is_quickfiles', False)):
+        if isinstance(referent, BaseFileNode) and referent.is_file and referent.is_quickfile:
             if referent.is_deleted:
                 raise HTTPError(http_status.HTTP_410_GONE)
             if PROXY_EMBER_APPS:

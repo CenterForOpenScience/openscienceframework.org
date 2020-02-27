@@ -23,7 +23,6 @@ from osf.models import (
     OSFGroup,
     Tag,
     Preprint,
-    QuickFilesNode,
 )
 from addons.wiki.models import WikiPage
 from addons.osfstorage.models import OsfStorageFile
@@ -1506,40 +1505,35 @@ class TestSearchFiles(OsfTestCase):
 
     @pytest.mark.enable_quickfiles_creation
     def test_quickfiles_files_appear_in_search(self):
-        quickfiles = QuickFilesNode.objects.get(creator=self.node.creator)
-        quickfiles_osf_storage = quickfiles.get_addon('osfstorage')
-        quickfiles_root = quickfiles_osf_storage.get_root()
+        user = factories.AuthUserFactory()
+        user.quickfolder.append_file('GreenLight.mp3')
 
-        quickfiles_root.append_file('GreenLight.mp3')
         find = query_file('GreenLight.mp3')['results']
-        assert_equal(len(find), 1)
-        assert find[0]['node_url'] == '/{}/quickfiles/'.format(quickfiles.creator._id)
+
+        assert len(find) == 1
+        assert find[0]['node_url'] == '/{}/quickfiles/'.format(user._id)
 
     @pytest.mark.enable_quickfiles_creation
     def test_qatest_quickfiles_files_not_appear_in_search(self):
-        quickfiles = QuickFilesNode.objects.get(creator=self.node.creator)
-        quickfiles_osf_storage = quickfiles.get_addon('osfstorage')
-        quickfiles_root = quickfiles_osf_storage.get_root()
-
-        file = quickfiles_root.append_file('GreenLight.mp3')
+        user = factories.AuthUserFactory()
+        file = user.quickfolder.append_file('GreenLight.mp3')
         tag = Tag(name='qatest')
         tag.save()
         file.tags.add(tag)
         file.save()
 
         find = query_file('GreenLight.mp3')['results']
-        assert_equal(len(find), 0)
+
+        assert len(find) == 0
 
     @pytest.mark.enable_quickfiles_creation
     def test_quickfiles_spam_user_files_do_not_appear_in_search(self):
-        quickfiles = QuickFilesNode.objects.get(creator=self.node.creator)
-        quickfiles_osf_storage = quickfiles.get_addon('osfstorage')
-        quickfiles_root = quickfiles_osf_storage.get_root()
-        quickfiles_root.append_file('GreenLight.mp3')
-
-        self.node.creator.disable_account()
-        self.node.creator.confirm_spam()
-        self.node.creator.save()
+        user = factories.AuthUserFactory()
+        user.quickfolder.append_file('GreenLight.mp3')
+        user.disable_account()
+        user.confirm_spam()
+        user.save()
 
         find = query_file('GreenLight.mp3')['results']
-        assert_equal(len(find), 0)
+
+        assert len(find) == 0

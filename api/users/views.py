@@ -74,7 +74,6 @@ from osf.models import (
     Contributor,
     ExternalAccount,
     Guid,
-    QuickFilesNode,
     AbstractNode,
     Preprint,
     Node,
@@ -379,8 +378,8 @@ class UserQuickFiles(JSONAPIBaseView, generics.ListAPIView, WaterButlerMixin, Us
     view_category = 'users'
     view_name = 'user-quickfiles'
 
-    def get_node(self, check_object_permissions):
-        return QuickFilesNode.objects.get_for_user(self.get_user(check_permissions=False))
+    def get_resource(self, check_object_permissions):
+        return self.get_user(check_permissions=False)
 
     def get_default_queryset(self):
         self.kwargs[self.path_lookup_url_kwarg] = '/'

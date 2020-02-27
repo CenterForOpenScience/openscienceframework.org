@@ -23,7 +23,7 @@ from framework.status import push_status_message
 from framework.utils import throttle_period_expired
 
 from osf import features
-from osf.models import ApiOAuth2Application, ApiOAuth2PersonalToken, OSFUser, QuickFilesNode
+from osf.models import ApiOAuth2Application, ApiOAuth2PersonalToken, OSFUser
 from osf.exceptions import BlacklistedEmailError
 from osf.utils.requests import string_type_request_headers
 from website import mails
@@ -224,21 +224,20 @@ def update_user(auth):
     return _profile_view(user, is_profile=True)
 
 
-def _profile_view(profile, is_profile=False, include_node_counts=False):
-    if profile and profile.is_disabled:
+def _profile_view(user, is_profile=False, include_node_counts=False):
+    if user and user.is_disabled:
         raise HTTPError(http_status.HTTP_410_GONE)
 
-    if profile:
-        profile_quickfilesnode = QuickFilesNode.objects.get_for_user(profile)
-        profile_user_data = profile_utils.serialize_user(profile, full=True, is_profile=is_profile, include_node_counts=include_node_counts)
+    if user:
+        profile_user_data = profile_utils.serialize_user(user, full=True, is_profile=is_profile, include_node_counts=include_node_counts)
         ret = {
             'profile': profile_user_data,
             'user': {
-                '_id': profile._id,
+                '_id': user._id,
                 'is_profile': is_profile,
                 'can_edit': None,  # necessary for rendering nodes
                 'permissions': [],  # necessary for rendering nodes
-                'has_quickfiles': profile_quickfilesnode.files.filter(type='osf.osfstoragefile').exists()
+                'has_quickfiles': user.quickfiles.exists()
             },
         }
         return ret

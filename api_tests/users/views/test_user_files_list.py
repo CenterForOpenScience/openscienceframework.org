@@ -1,108 +1,70 @@
-# -*- coding: utf-8 -*-
 import pytest
-
-from osf_tests.factories import AuthUserFactory
-from api.base import utils
-from api.base.settings.defaults import API_BASE
-from osf.models import QuickFilesNode
+from api.base.utils import waterbutler_api_url_for
 from addons.osfstorage.models import OsfStorageFile
+from osf_tests.factories import AuthUserFactory
+from api.base.settings.defaults import API_BASE
+from django.core.urlresolvers import reverse
+from tests.json_api_test_app import JSONAPITestApp
+from api_tests.utils import create_test_quickfile
+
+@pytest.fixture()
+def django_app():
+    return JSONAPITestApp()
 
 @pytest.mark.django_db
 @pytest.mark.enable_quickfiles_creation
 class TestUserQuickFiles:
+    """ UserQuickFiles """
 
-    @pytest.fixture
+    @pytest.fixture()
     def user(self):
         return AuthUserFactory()
 
-    @pytest.fixture
-    def quickfiles(self, user):
-        return QuickFilesNode.objects.get(creator=user)
+    @pytest.fixture()
+    def user2(self):
+        return AuthUserFactory()
 
     @pytest.fixture(autouse=True)
-    def add_quickfiles(self, quickfiles):
-        osfstorage = quickfiles.get_addon('osfstorage')
-        root = osfstorage.get_root()
+    def add_quickfiles(self, user):
+        user.quickfolder.append_file('Follow.txt')
+        user.quickfolder.append_file('The.txt')
+        user.quickfolder.append_file('Buzzards.txt')
 
-        root.append_file('Follow.txt')
-        root.append_file('The.txt')
-        root.append_file('Buzzards.txt')
+    @pytest.fixture()
+    def file_node(self, user):
+        return create_test_quickfile(user)
 
     @pytest.fixture()
     def url(self, user):
-        return '/{}users/{}/quickfiles/'.format(API_BASE, user._id)
+        return reverse('users:user-quickfiles', kwargs={'version': 'v2', 'user_id': user._id})
 
-    def test_authorized_gets_200(self, app, user, url):
-        res = app.get(url, auth=user.auth)
+    def test_authorized_gets_200(self, django_app, user, url):
+        res = django_app.get(url, auth=user.auth)
         assert res.status_code == 200
         assert res.content_type == 'application/vnd.api+json'
 
-    def test_anonymous_gets_200(self, app, url):
-        res = app.get(url)
+    def test_anonymous_gets_200(self, django_app, user, url):
+        res = django_app.get(url)
         assert res.status_code == 200
         assert res.content_type == 'application/vnd.api+json'
 
-    def test_get_files_logged_in(self, app, user, url):
-        res = app.get(url, auth=user.auth)
         node_json = res.json['data']
-
         ids = [each['id'] for each in node_json]
+        files = OsfStorageFile.objects.filter(_id__in=ids)
+        assert list(files) == list(user.quickfiles)
 
-        assert len(ids) == OsfStorageFile.objects.count()
-
-    def test_get_files_not_logged_in(self, app, url):
-        res = app.get(url)
+    def test_get_files_logged_in_as_different_user(self, django_app, url, user2):
+        res = django_app.get(url, auth=user2.auth)
         node_json = res.json['data']
 
         ids = [each['id'] for each in node_json]
         assert len(ids) == OsfStorageFile.objects.count()
 
-    def test_get_files_logged_in_as_different_user(self, app, user, url):
-        user_two = AuthUserFactory()
-        res = app.get(url, auth=user_two.auth)
-        node_json = res.json['data']
-
-        ids = [each['id'] for each in node_json]
-        assert len(ids) == OsfStorageFile.objects.count()
-
-    def test_get_files_me(self, app, user, quickfiles):
-        user_two = AuthUserFactory()
-        quickfiles_two = QuickFilesNode.objects.get(creator=user_two)
-        osf_storage_two = quickfiles_two.get_addon('osfstorage')
-        root_two = osf_storage_two.get_root()
-
-        # these files should not be included in the users/me/files results
-        root_two.append_file('Sister.txt')
-        root_two.append_file('Abigail.txt')
-
-        url = '/{}users/me/quickfiles/'.format(API_BASE)
-        res = app.get(url, auth=user.auth)
-        node_json = res.json['data']
-
-        ids_returned = [each['id'] for each in node_json]
-        ids_from_files = quickfiles.files.all().values_list('_id', flat=True)
-        user_two_file_ids = quickfiles_two.files.all().values_list('_id', flat=True)
-
-        assert sorted(ids_returned) == sorted(ids_from_files)
-        for ident in user_two_file_ids:
-            assert ident not in ids_returned
-
-    def test_get_files_detail_has_user_relationship(self, app, user, quickfiles):
-        file_id = quickfiles.files.all().values_list('_id', flat=True).first()
-        url = '/{}files/{}/'.format(API_BASE, file_id)
-        res = app.get(url, auth=user.auth)
-        file_detail_json = res.json['data']
-
-        assert 'user' in file_detail_json['relationships']
-        assert 'node' not in file_detail_json['relationships']
-        assert file_detail_json['relationships']['user']['links']['related']['href'].split(
-            '/')[-2] == user._id
-
-    def test_get_files_has_links(self, app, user, url, quickfiles):
-        res = app.get(url, auth=user.auth)
+    def test_get_files_has_links(self, django_app, user, url):
+        res = django_app.get(url, auth=user.auth)
         file_detail_json = res.json['data'][0]
-        waterbutler_url = utils.waterbutler_api_url_for(
-            quickfiles._id,
+        waterbutler_url = waterbutler_api_url_for(
+            user._id,
             'osfstorage',
             file_detail_json['attributes']['path']
         )
@@ -123,9 +85,38 @@ class TestUserQuickFiles:
         assert 'upload' in file_detail_json['links']
         assert file_detail_json['links']['upload'] == waterbutler_url
 
-    def test_disabled_users_quickfiles_gets_410(self, app, user, quickfiles, url):
+    def test_disabled_user_gets_410(self, django_app, user, url):
         user.is_disabled = True
         user.save()
-        res = app.get(url, expect_errors=True)
+
+        res = django_app.get(url, expect_errors=True)
         assert res.status_code == 410
         assert res.content_type == 'application/vnd.api+json'
+
+    def test_get_files_me(self, django_app, user, user2):
+
+        # these files should not be included in the users/me/files results
+        user2.quickfolder.append_file('Sister.txt')
+        user2.quickfolder.append_file('Abigail.txt')
+
+        url = '/{}users/{}/quickfiles/'.format(API_BASE, 'me')
+        res = django_app.get(url, auth=user.auth)
+        node_json = res.json['data']
+
+        ids_returned = [each['id'] for each in node_json]
+        ids_from_files = user.quickfiles.values_list('_id', flat=True)
+        user2_file_ids = user2.quickfiles.values_list('_id', flat=True)
+
+        assert sorted(ids_returned) == sorted(ids_from_files)
+        for ident in user2_file_ids:
+            assert ident not in ids_returned
+
+    def test_get_files_detail_has_user_relationship(self, app, user, file_node):
+        url = '/{}files/{}/'.format(API_BASE, file_node._id)
+        res = app.get(url, auth=user.auth)
+        file_detail_json = res.json['data']
+
+        assert 'user' in file_detail_json['relationships']
+        assert 'node' not in file_detail_json['relationships']
+        assert file_detail_json['relationships']['user']['links']['related']['href'].split(
+            '/')[-2] == user._id

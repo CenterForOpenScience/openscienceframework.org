@@ -26,7 +26,6 @@ from osf.models import OSFUser
 from osf.models import BaseFileNode
 from osf.models import Institution
 from osf.models import OSFGroup
-from osf.models import QuickFilesNode
 from osf.models import Preprint
 from osf.models import SpamStatus
 from addons.wiki.models import WikiPage
@@ -230,7 +229,6 @@ def search(query, index=None, doc_type='_all', raw=False):
         pass
     aggregations = get_aggregations(aggs_query, doc_type=doc_type)
     counts = get_counts(count_query, index)
-
     # Run the real query and get the results
     raw_results = client().search(index=index, doc_type=doc_type, body=query)
     results = [hit['_source'] for hit in raw_results['hits']['hits']]
@@ -250,9 +248,15 @@ def format_results(results):
         if result.get('category') == 'user':
             result['url'] = '/profile/' + result['id']
         elif result.get('category') == 'file':
-            parent_info = load_parent(result.get('parent_id'))
-            result['parent_url'] = parent_info.get('url') if parent_info else None
-            result['parent_title'] = parent_info.get('title') if parent_info else None
+            file_node = BaseFileNode.objects.get(_id=result.get('id'))
+            if file_node.is_quickfile:
+                result['parent_url'] = '/{}/quickfiles/'.format(file_node.target._id)
+                result['parent_title'] = file_node.target.quickfolder.title
+            else:
+                parent_info = load_parent(result.get('parent_id'))
+                result['parent_url'] = parent_info.get('url') if parent_info else None
+                result['parent_title'] = parent_info.get('title') if parent_info else None
+
         elif result.get('category') in {'project', 'component', 'registration'}:
             result = format_result(result, result.get('parent_id'))
         elif result.get('category') in {'preprint'}:
@@ -333,6 +337,7 @@ def load_parent(parent_id):
             'id': parent._id,
             'is_registation': parent.is_registration,
         }
+
     return None
 
 
@@ -523,7 +528,7 @@ def update_node(node, index=None, bulk=False, async_update=False):
         update_file(file_, index=index)
 
     is_qa_node = bool(set(settings.DO_NOT_INDEX_LIST['tags']).intersection(node.tags.all().values_list('name', flat=True))) or any(substring in node.title for substring in settings.DO_NOT_INDEX_LIST['titles'])
-    if node.is_deleted or not node.is_public or node.archiving or node.is_spam or (node.spam_status == SpamStatus.FLAGGED and settings.SPAM_FLAGGED_REMOVE_FROM_SEARCH) or node.is_quickfiles or is_qa_node:
+    if node.is_deleted or not node.is_public or node.archiving or node.is_spam or (node.spam_status == SpamStatus.FLAGGED and settings.SPAM_FLAGGED_REMOVE_FROM_SEARCH) or is_qa_node:
         delete_doc(node._id, node, index=index)
     else:
         category = get_doctype_from_node(node)
@@ -671,8 +676,7 @@ def update_user(user, index=None):
             client().delete(index=index, doc_type='user', id=user._id, refresh=True, ignore=[404])
             # update files in their quickfiles node if the user has been marked as spam
             if user.spam_status == SpamStatus.SPAM:
-                quickfiles = QuickFilesNode.objects.get_for_user(user)
-                for quickfile_id in quickfiles.files.values_list('_id', flat=True):
+                for quickfile_id in user.quickfiles.values_list('_id', flat=True):
                     client().delete(
                         index=index,
                         doc_type='file',
@@ -726,13 +730,23 @@ def update_file(file_, index=None, delete=False):
     target = file_.target
 
     # TODO: Can remove 'not file_.name' if we remove all base file nodes with name=None
-    file_node_is_qa = bool(
-        set(settings.DO_NOT_INDEX_LIST['tags']).intersection(file_.tags.all().values_list('name', flat=True))
-    ) or bool(
-        set(settings.DO_NOT_INDEX_LIST['tags']).intersection(target.tags.all().values_list('name', flat=True))
-    ) or any(substring in target.title for substring in settings.DO_NOT_INDEX_LIST['titles'])
-    if not file_.name or not target.is_public or delete or file_node_is_qa or getattr(target, 'is_deleted', False) or getattr(target, 'archiving', False) or target.is_spam or (
-            target.spam_status == SpamStatus.FLAGGED and settings.SPAM_FLAGGED_REMOVE_FROM_SEARCH):
+
+    tags_not_to_index = set(settings.DO_NOT_INDEX_LIST['tags'])
+    file_tags = file_.tags.all().values_list('name', flat=True)
+    target_tags = file_.tags.all().values_list('name', flat=True)
+
+    file_tag_in_do_not_index = bool(tags_not_to_index.intersection(file_tags))
+    target_tag_in_do_not_index = bool(tags_not_to_index.intersection(target_tags))
+
+    if hasattr(target, 'title'):
+        part_of_tag_in_target_title = any(substring in target.title for substring in settings.DO_NOT_INDEX_LIST['titles'])
+    else:
+        part_of_tag_in_target_title = False
+
+    file_node_is_qa = file_tag_in_do_not_index or target_tag_in_do_not_index or part_of_tag_in_target_title
+    flagged = target.is_spam and settings.SPAM_FLAGGED_REMOVE_FROM_SEARCH
+
+    if not file_.name or not target.is_public or delete or file_node_is_qa or getattr(target, 'is_deleted', False) or getattr(target, 'archiving', False) or target.is_spam or flagged:
         client().delete(
             index=index,
             doc_type='file',
@@ -761,8 +775,8 @@ def update_file(file_, index=None, delete=False):
         provider=file_.provider,
         path=file_.path,
     )
-    if getattr(target, 'is_quickfiles', None):
-        node_url = '/{user_id}/quickfiles/'.format(user_id=target.creator._id)
+    if file_.is_quickfile:
+        node_url = '/{user_id}/quickfiles/'.format(user_id=target._id)
     else:
         node_url = '/{target_id}/'.format(target_id=target._id)
 
