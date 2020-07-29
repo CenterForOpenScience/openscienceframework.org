@@ -4,7 +4,7 @@ import threading
 from django.utils import timezone
 
 from website import mails, settings
-from osf.models import PreprintProvider
+from osf.models import CollectionProvider, PreprintProvider, RegistrationProvider
 from website.settings import DOMAIN, CAMPAIGN_REFRESH_THRESHOLD
 from website.util.metrics import OsfSourceTags, OsfClaimedTags, CampaignSourceTags, CampaignClaimedTags, provider_source_tag
 from framework.utils import throttle_period_expired
@@ -71,28 +71,53 @@ def get_campaigns():
                         'confirmation_email_template': mails.CONFIRM_EMAIL_PREPRINTS(template, name),
                         'login_type': 'proxy',
                         'provider': name,
-                        'logo': provider._id if name != 'OSF' else settings.OSF_PREPRINTS_LOGO,
+                        'logo': f'preprints-assets/{provider._id}' if name != 'OSF' else settings.OSF_PREPRINTS_LOGO,
                     }
                 })
 
-            # Proxy campaigns: Registries, OSF only
-            # TODO: refactor for futher branded registries when there is a model for registries providers
-            newest_campaigns.update({
-                'osf-registries': {
-                    'system_tag': provider_source_tag('osf', 'registry'),
-                    'redirect_url': furl.furl(DOMAIN).add(path='registries/').url,
-                    'confirmation_email_template': mails.CONFIRM_EMAIL_REGISTRIES_OSF,
-                    'login_type': 'proxy',
-                    'provider': 'osf',
-                    'logo': settings.OSF_REGISTRIES_LOGO
-                }
-            })
+            # Proxy campaigns: Collections
+            collection_providers = CollectionProvider.objects.all()
+            for collection_provider in collection_providers:
+                campaign = f'{collection_provider._id}-collections'
+                system_tag = provider_source_tag(collection_provider._id, 'collection')
+                name = collection_provider.name
+                url_path = f'collections/{collection_provider._id}'
+                newest_campaigns.update({
+                    campaign: {
+                        'system_tag': system_tag,
+                        'redirect_url': furl.furl(DOMAIN).add(path=url_path),
+                        'confirmation_email_template': mails.CONFIRM_EMAIL_COLLECTIONS(name),
+                        'login_type': 'proxy',
+                        'provider': name,
+                    }
+                })
+
+            # Proxy campaigns: Registration Providers, OSF and Branded
+            registration_providers = RegistrationProvider.objects.all()
+            for registration_provider in registration_providers:
+                if registration_provider._id == 'osf':
+                    url_path = 'registries/'
+                    template = 'osf'
+                else:
+                    url_path = f'registries/{registration_provider._id}'
+                    template = 'branded'
+                campaign = f'{registration_provider._id}-registries'
+                newest_campaigns.update({
+                    campaign: {
+                        'system_tag': provider_source_tag(registration_provider._id, 'registry'),
+                        'redirect_url': furl.furl(DOMAIN).add(path=url_path).url,
+                        'confirmation_email_template': mails.CONFIRM_EMAIL_REGISTRIES(template, registration_provider._id),
+                        'login_type': 'proxy',
+                        'provider': registration_provider.name,
+                        'logo': f'registries-assets/{registration_provider._id}' if name != 'OSF Registries' else settings.OSF_REGISTRIES_LOGO,
+                    }
+                })
 
             newest_campaigns.update({
                 'osf-registered-reports': {
                     'system_tag': CampaignSourceTags.OsfRegisteredReports.value,
                     'redirect_url': furl.furl(DOMAIN).add(path='rr/').url,
-                    'confirmation_email_template': mails.CONFIRM_EMAIL_REGISTRIES_OSF,
+                    'confirmation_email_template': mails.CONFIRM_EMAIL_REGISTRIES('osf', 'OSF Registries'),
                     'login_type': 'proxy',
                     'provider': 'osf',
                     'logo': settings.OSF_REGISTRIES_LOGO

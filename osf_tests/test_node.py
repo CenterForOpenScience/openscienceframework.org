@@ -13,6 +13,7 @@ from website.project.signals import contributor_added, contributor_removed, afte
 from osf.exceptions import NodeStateError
 from osf.utils import permissions
 from website.util import api_url_for, web_url_for
+from website.util.metrics import CampaignSourceTags
 from api_tests.utils import disconnected_from_listeners
 from website.citations.utils import datetime_to_csl
 from website import language, settings
@@ -877,6 +878,51 @@ class TestNodeCreation:
 
 # Copied from tests/test_models.py
 class TestContributorMethods:
+    @pytest.fixture()
+    def collection(self):
+        collection_provider = CollectionProviderFactory()
+        return CollectionFactory(provider=collection_provider)
+
+    @pytest.fixture()
+    def collection2(self):
+        collection_provider = CollectionProviderFactory()
+        return CollectionFactory(provider=collection_provider)
+
+    @pytest.fixture()
+    def node_in_collection(self, collection, user):
+        node = ProjectFactory(is_public=True, creator=user)
+        CollectionSubmission(
+            guid=node.guids.first(),
+            collection=collection,
+            creator=user,
+        ).save()
+        return node
+
+    @pytest.fixture()
+    def node_in_collections(self, collection, collection2, user):
+        node = ProjectFactory(is_public=True, creator=user)
+        osf4m_tag, _ = Tag.all_tags.get_or_create(name=CampaignSourceTags.Osf4m.value, system=True)
+        node.tags.add(osf4m_tag)
+        CollectionSubmission(
+            guid=node.guids.first(),
+            collection=collection,
+            creator=node.creator,
+        ).save()
+        CollectionSubmission(
+            guid=node.guids.first(),
+            collection=collection2,
+            creator=node.creator,
+        ).save()
+        return node
+
+    @pytest.fixture()
+    def node_osf4m(self, user):
+        node = ProjectFactory(is_public=True, creator=user)
+        osf4m_tag, _ = Tag.all_tags.get_or_create(name=CampaignSourceTags.Osf4m.value, system=True)
+        node.tags.add(osf4m_tag)
+        node.save()
+        return node
+
     def test_add_contributor(self, node, user, auth):
         # A user is added as a contributor
         user2 = UserFactory()
@@ -944,6 +990,59 @@ class TestContributorMethods:
         assert str(excinfo.value) == 'This contributor cannot be added. ' \
                                         'If the problem persists please report it to please report it to' \
                                         ' <a href="mailto:support@osf.io">support@osf.io</a>.'
+
+    def test_contributor_source_tag_collections(self, user, node, node_in_collection, collection):
+        unregistered_user = UnregUserFactory()
+        unregistered_user.save()
+        node.add_unregistered_contributor(
+            auth=Auth(user),
+            fullname=unregistered_user.fullname,
+            email=unregistered_user.email,
+            existing_user=unregistered_user)
+
+        assert unregistered_user in node.contributors
+        assert unregistered_user.all_tags.filter(name='source:provider|osf').exists()
+
+        node_in_collection.add_unregistered_contributor(
+            auth=Auth(user),
+            fullname=unregistered_user.fullname,
+            email=unregistered_user.email,
+            existing_user=unregistered_user)
+
+        assert unregistered_user in node_in_collection.contributors
+        assert unregistered_user.all_tags.filter(name=f'source:provider|collections|{collection.provider._id}').exists()
+
+    def test_contributor_source_tag_multiple_collections(self, user, node, node_in_collections, collection, collection2):
+        unregistered_user = UnregUserFactory()
+        unregistered_user.save()
+
+        assert node_in_collections.all_tags.filter(name=CampaignSourceTags.Osf4m.value).exists()
+
+        node_in_collections.add_unregistered_contributor(
+            auth=Auth(user),
+            fullname=unregistered_user.fullname,
+            email=unregistered_user.email,
+            existing_user=unregistered_user)
+
+        assert unregistered_user in node_in_collections.contributors
+        assert unregistered_user.all_tags.filter(name=f'source:provider|collections|{collection.provider._id}').exists()
+        assert unregistered_user.all_tags.filter(name=f'source:provider|collections|{collection2.provider._id}').exists()
+        assert unregistered_user.all_tags.filter(name=CampaignSourceTags.Osf4m.value).exists()
+
+    def test_contributor_source_tag_osf4m(self, user, node_osf4m):
+        unregistered_user = UnregUserFactory()
+        unregistered_user.save()
+
+        assert node_osf4m.all_tags.filter(name=CampaignSourceTags.Osf4m.value).exists()
+
+        node_osf4m.add_unregistered_contributor(
+            auth=Auth(user),
+            fullname=unregistered_user.fullname,
+            email=unregistered_user.email,
+            existing_user=unregistered_user)
+
+        assert unregistered_user in node_osf4m.contributors
+        assert unregistered_user.all_tags.filter(name=CampaignSourceTags.Osf4m.value).exists()
 
     def test_cant_add_creator_as_contributor_twice(self, node, user):
         node.add_contributor(contributor=user)

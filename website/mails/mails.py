@@ -197,9 +197,13 @@ CONFIRM_EMAIL_PREPRINTS = lambda name, provider: Mail(
     'confirm_preprints_{}'.format(name),
     subject='OSF Account Verification, {}'.format(provider)
 )
-CONFIRM_EMAIL_REGISTRIES_OSF = Mail(
-    'confirm_registries_osf',
-    subject='OSF Account Verification, OSF Registries'
+CONFIRM_EMAIL_COLLECTIONS = lambda collection: Mail(
+    'confirm_collections',
+    subject='OSF Account Verification, {}'.format(collection)
+)
+CONFIRM_EMAIL_REGISTRIES = lambda template, registration_provider: Mail(
+    'confirm_registries_{}'.format(template),
+    subject='OSF Account Verification, {}'.format(registration_provider)
 )
 CONFIRM_EMAIL_MODERATION = lambda provider: Mail(
     'confirm_moderation',
@@ -220,6 +224,10 @@ INVITE_PREPRINT = lambda template, provider: Mail(
     'invite_preprints_{}'.format(template),
     subject='You have been added as a contributor to {} {} {}.'.format(get_english_article(provider.name), provider.name, provider.preprint_word)
 )
+INVITE_DRAFT_REGISTRATION = lambda template, provider: Mail(
+    'invite_draft_registrations_{}'.format(template),
+    subject='You have been added as a contributor to {} {} draft registration.'.format(get_english_article(provider.name), provider.name)
+)
 CONTRIBUTOR_ADDED_DEFAULT = Mail(
     'contributor_added_default',
     subject='You have been added as a contributor to an OSF project.'
@@ -232,9 +240,9 @@ CONTRIBUTOR_ADDED_PREPRINT_NODE_FROM_OSF = Mail(
     'contributor_added_preprint_node_from_osf',
     subject='You have been added as a contributor to an OSF project.'
 )
-CONTRIBUTOR_ADDED_DRAFT_REGISTRATION = Mail(
-    'contributor_added_draft_registration',
-    subject='You have been added as a contributor to a draft registration.'
+CONTRIBUTOR_ADDED_DRAFT_REGISTRATION = lambda template, provider: Mail(
+    'contributor_added_draft_registrations_{}'.format(template),
+    subject='You have been added as a contributor to {} {} draft registration.'.format(get_english_article(provider.name), provider.name)
 )
 MODERATOR_ADDED = lambda provider: Mail(
     'moderator_added',

@@ -8,9 +8,9 @@
     %>
     Hello ${user.fullname},<br>
     <br>
-    ${referrer_name + ' has added you' if referrer_name else 'You have been added'} as a contributor to the draft registration "${node.title}" on OSF: ${node.absolute_url}<br>
+    ${referrer_name + ' has added you' if referrer_name else 'You have been added'} as a contributor to the draft registration "${node.title}" on the OSF: ${node.absolute_url}<br>
     <br>
-    You will ${'not receive ' if all_global_subscriptions_none else 'be automatically subscribed to '}notification emails for this project. To change your email notification preferences, visit your project or your user settings: ${settings.DOMAIN + "settings/notifications/"}<br>
+    You will ${'not receive ' if all_global_subscriptions_none else 'be automatically subscribed to '}notification emails for this draft registration. To change your email notification preferences, visit your user settings: ${settings.DOMAIN + "settings/notifications/"}<br>
     <br>
     If you are erroneously being associated with "${node.title}," then you may visit the draft registration and remove yourself as a contributor.<br>
     <br>
