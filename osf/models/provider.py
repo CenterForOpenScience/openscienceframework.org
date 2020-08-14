@@ -238,6 +238,7 @@ class PreprintProvider(AbstractProvider):
     additional_providers = fields.ArrayField(models.CharField(max_length=200), default=list, blank=True)
     doi_prefix = models.CharField(blank=True, max_length=32)
     in_sloan_study = models.NullBooleanField(default=True)
+    chronos_enabled = models.NullBooleanField(default=False)
 
     PREPRINT_WORD_CHOICES = (
         ('preprint', 'Preprint'),
