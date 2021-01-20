@@ -415,6 +415,7 @@ class CeleryConfig:
         'osf.management.commands.migrate_deleted_date',
         'osf.management.commands.addon_deleted_date',
         'osf.management.commands.migrate_registration_responses',
+        'osf.management.commands.international_user_metrics',
         'osf.management.commands.update_institution_project_counts'
     }
 
@@ -611,6 +612,10 @@ class CeleryConfig:
             },
             # 'data_storage_usage': {
             #   'task': 'management.commands.data_storage_usage',
+            #   'schedule': crontab(day_of_month=1, minute=30, hour=4),  # Last of the month at 11:30 p.m.
+            # },
+            # 'international_user_metrics': {
+            #   'task': 'management.commands.international_user_metrics',
             #   'schedule': crontab(day_of_month=1, minute=30, hour=4),  # Last of the month at 11:30 p.m.
             # },
             # 'migrate_pagecounter_data': {
@@ -1963,6 +1968,12 @@ DS_METRICS_OSF_TOKEN = None
 DS_METRICS_BASE_FOLDER = None
 REG_METRICS_OSF_TOKEN = None
 REG_METRICS_BASE_FOLDER = None
+
+# Region names for metrics data csv
+USA = 'United States'
+GERMANY = 'Germany - Frankfurt'
+CANADA = u'Canada - Montréal'
+AUSTRALIA = 'Australia - Sydney'
 
 STORAGE_WARNING_THRESHOLD = .9  # percent of maximum storage used before users get a warning message
 STORAGE_LIMIT_PUBLIC = 50
