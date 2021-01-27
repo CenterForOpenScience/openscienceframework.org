@@ -2,18 +2,20 @@ import json
 
 from django.http import HttpResponse
 from django.core import serializers
-from django.core.exceptions import ValidationError
 from django.urls import reverse_lazy
 from django.shortcuts import redirect
 from django.views.generic import View, CreateView, ListView, DetailView, UpdateView, DeleteView, TemplateView
-from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.forms.models import model_to_dict
 
 from admin.collection_providers.forms import CollectionProviderForm
 from admin.base import settings
 from admin.base.forms import ImportFileForm
-from osf.models import Collection, CollectionProvider, NodeLicense
+from osf.models import (
+    Collection,
+    CollectionProvider,
+)
+from admin.preprint_providers.views import ImportProviderView
 
 
 class CreateCollectionProvider(PermissionRequiredMixin, CreateView):
@@ -106,48 +108,50 @@ class CollectionProviderDisplay(PermissionRequiredMixin, DetailView):
         licenses_html += '</ul>'
         collection_provider_attributes['licenses_acceptable'] = licenses_html
 
-        # compile html list of collected_type_choices
-        collected_type_choices_html = '<ul>'
-        for choice in collection_provider.primary_collection.collected_type_choices:
-            collected_type_choices_html += u'<li>{}</li>'.format(choice)
-        collected_type_choices_html += '</ul>'
-        kwargs['collected_type_choices'] = collected_type_choices_html
-
-        # compile html list of status_choices
-        status_choices_html = '<ul>'
-        for choice in collection_provider.primary_collection.status_choices:
-            status_choices_html += u'<li>{}</li>'.format(choice)
-        status_choices_html += '</ul>'
-        kwargs['status_choices'] = status_choices_html
-
-        # compile html list of volume_choices
-        volume_choices_html = '<ul>'
-        for choice in collection_provider.primary_collection.volume_choices:
-            volume_choices_html += u'<li>{}</li>'.format(choice)
-        volume_choices_html += '</ul>'
-        kwargs['volume_choices'] = volume_choices_html
-
-        # compile html list of issue_choices
-        issue_choices_html = '<ul>'
-        for choice in collection_provider.primary_collection.issue_choices:
-            issue_choices_html += u'<li>{}</li>'.format(choice)
-        issue_choices_html += '</ul>'
-        kwargs['issue_choices'] = issue_choices_html
-
-        # compile html list of program_area_choices
-        program_area_choices_html = '<ul>'
-        for choice in collection_provider.primary_collection.program_area_choices:
-            program_area_choices_html += u'<li>{}</li>'.format(choice)
-        program_area_choices_html += '</ul>'
-        kwargs['program_area_choices'] = program_area_choices_html
-
-        # get a dict of model fields so that we can set the initial value for the update form
         fields = model_to_dict(collection_provider)
-        fields['collected_type_choices'] = json.dumps(collection_provider.primary_collection.collected_type_choices)
-        fields['status_choices'] = json.dumps(collection_provider.primary_collection.status_choices)
-        fields['volume_choices'] = json.dumps(collection_provider.primary_collection.volume_choices)
-        fields['issue_choices'] = json.dumps(collection_provider.primary_collection.issue_choices)
-        fields['program_area_choices'] = json.dumps(collection_provider.primary_collection.program_area_choices)
+
+        # compile html list of collected_type_choices
+        if collection_provider.primary_collection:
+            collected_type_choices_html = '<ul>'
+            for choice in collection_provider.primary_collection.collected_type_choices:
+                collected_type_choices_html += u'<li>{}</li>'.format(choice)
+            collected_type_choices_html += '</ul>'
+            kwargs['collected_type_choices'] = collected_type_choices_html
+
+            # compile html list of status_choices
+            status_choices_html = '<ul>'
+            for choice in collection_provider.primary_collection.status_choices:
+                status_choices_html += u'<li>{}</li>'.format(choice)
+            status_choices_html += '</ul>'
+            kwargs['status_choices'] = status_choices_html
+
+            # compile html list of volume_choices
+            volume_choices_html = '<ul>'
+            for choice in collection_provider.primary_collection.volume_choices:
+                volume_choices_html += u'<li>{}</li>'.format(choice)
+            volume_choices_html += '</ul>'
+            kwargs['volume_choices'] = volume_choices_html
+
+            # compile html list of issue_choices
+            issue_choices_html = '<ul>'
+            for choice in collection_provider.primary_collection.issue_choices:
+                issue_choices_html += u'<li>{}</li>'.format(choice)
+            issue_choices_html += '</ul>'
+            kwargs['issue_choices'] = issue_choices_html
+
+            # compile html list of program_area_choices
+            program_area_choices_html = '<ul>'
+            for choice in collection_provider.primary_collection.program_area_choices:
+                program_area_choices_html += u'<li>{}</li>'.format(choice)
+            program_area_choices_html += '</ul>'
+            kwargs['program_area_choices'] = program_area_choices_html
+
+            # get a dict of model fields so that we can set the initial value for the update form
+            fields['collected_type_choices'] = json.dumps(collection_provider.primary_collection.collected_type_choices)
+            fields['status_choices'] = json.dumps(collection_provider.primary_collection.status_choices)
+            fields['volume_choices'] = json.dumps(collection_provider.primary_collection.volume_choices)
+            fields['issue_choices'] = json.dumps(collection_provider.primary_collection.issue_choices)
+            fields['program_area_choices'] = json.dumps(collection_provider.primary_collection.program_area_choices)
         kwargs['form'] = CollectionProviderForm(initial=fields)
 
         # set api key for tinymce
@@ -163,27 +167,28 @@ class CollectionProviderChangeForm(PermissionRequiredMixin, UpdateView):
     form_class = CollectionProviderForm
 
     def form_valid(self, form):
-        self.object.primary_collection.collected_type_choices.extend(form.cleaned_data['collected_type_choices']['added'])
-        for item in form.cleaned_data['collected_type_choices']['removed']:
-            self.object.primary_collection.collected_type_choices.remove(item)
+        if self.object.primary_collection:
+            self.object.primary_collection.collected_type_choices.extend(form.cleaned_data['collected_type_choices']['added'])
+            for item in form.cleaned_data['collected_type_choices']['removed']:
+                self.object.primary_collection.collected_type_choices.remove(item)
 
-        self.object.primary_collection.status_choices.extend(form.cleaned_data['status_choices']['added'])
-        for item in form.cleaned_data['status_choices']['removed']:
-            self.object.primary_collection.status_choices.remove(item)
+            self.object.primary_collection.status_choices.extend(form.cleaned_data['status_choices']['added'])
+            for item in form.cleaned_data['status_choices']['removed']:
+                self.object.primary_collection.status_choices.remove(item)
 
-        self.object.primary_collection.issue_choices.extend(form.cleaned_data['issue_choices']['added'])
-        for item in form.cleaned_data['issue_choices']['removed']:
-            self.object.primary_collection.issue_choices.remove(item)
+            self.object.primary_collection.issue_choices.extend(form.cleaned_data['issue_choices']['added'])
+            for item in form.cleaned_data['issue_choices']['removed']:
+                self.object.primary_collection.issue_choices.remove(item)
 
-        self.object.primary_collection.volume_choices.extend(form.cleaned_data['volume_choices']['added'])
-        for item in form.cleaned_data['volume_choices']['removed']:
-            self.object.primary_collection.volume_choices.remove(item)
+            self.object.primary_collection.volume_choices.extend(form.cleaned_data['volume_choices']['added'])
+            for item in form.cleaned_data['volume_choices']['removed']:
+                self.object.primary_collection.volume_choices.remove(item)
 
-        self.object.primary_collection.program_area_choices.extend(form.cleaned_data['program_area_choices']['added'])
-        for item in form.cleaned_data['program_area_choices']['removed']:
-            self.object.primary_collection.program_area_choices.remove(item)
+            self.object.primary_collection.program_area_choices.extend(form.cleaned_data['program_area_choices']['added'])
+            for item in form.cleaned_data['program_area_choices']['removed']:
+                self.object.primary_collection.program_area_choices.remove(item)
 
-        self.object.primary_collection.save()
+            self.object.primary_collection.save()
         return super(CollectionProviderChangeForm, self).form_valid(form)
 
     def form_invalid(self, form):
@@ -248,7 +253,8 @@ class ExportColectionProvider(PermissionRequiredMixin, View):
         cleaned_fields = cleaned_data['fields']
         cleaned_fields['licenses_acceptable'] = [node_license.license_id for node_license in collection_provider.licenses_acceptable.all()]
         cleaned_fields['default_license'] = collection_provider.default_license.license_id if collection_provider.default_license else ''
-        cleaned_fields['primary_collection'] = self.serialize_primary_collection(cleaned_fields['primary_collection'])
+        if collection_provider.primary_collection:
+            cleaned_fields['primary_collection'] = self.serialize_primary_collection(cleaned_fields['primary_collection'])
         cleaned_data['fields'] = cleaned_fields
         filename = '{}_export.json'.format(collection_provider.name)
         response = HttpResponse(json.dumps(cleaned_data), content_type='text/json')
@@ -262,62 +268,6 @@ class ExportColectionProvider(PermissionRequiredMixin, View):
         return cleaned_data
 
 
-class ImportCollectionProvider(PermissionRequiredMixin, View):
+class ImportCollectionProvider(ImportProviderView):
     permission_required = 'osf.change_collectionprovider'
-    raise_exception = True
-
-    def post(self, request, *args, **kwargs):
-        form = ImportFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file_str = self.parse_file(request.FILES['file'])
-            file_json = json.loads(file_str)
-            cleaned_result = file_json['fields']
-            try:
-                collection_provider = self.create_or_update_provider(cleaned_result)
-            except ValidationError:
-                messages.error(request, 'A Validation Error occured, this JSON is invalid or shares an id with an already existing provider.')
-                return redirect('collection_providers:create')
-
-            return redirect('collection_providers:detail', collection_provider_id=collection_provider.id)
-
-    def parse_file(self, f):
-        parsed_file = ''
-        for chunk in f.chunks():
-            if isinstance(chunk, bytes):
-                chunk = chunk.decode()
-            parsed_file += chunk
-        return parsed_file
-
-    def get_page_provider(self):
-        page_provider_id = self.kwargs.get('collection_provider_id', '')
-        if page_provider_id:
-            return CollectionProvider.objects.get(id=page_provider_id)
-
-    def create_or_update_provider(self, provider_data):
-        provider = self.get_page_provider()
-        licenses = [NodeLicense.objects.get(license_id=license_id) for license_id in provider_data.pop('licenses_acceptable', [])]
-        default_license = provider_data.pop('default_license', False)
-        primary_collection = provider_data.pop('primary_collection', None)
-        provider_data.pop('additional_providers')
-
-        if provider:
-            for key, val in provider_data.items():
-                setattr(provider, key, val)
-            provider.save()
-        else:
-            provider = CollectionProvider(**provider_data)
-            provider._creator = self.request.user
-            provider.save()
-
-        if primary_collection:
-            provider.primary_collection.collected_type_choices = primary_collection['fields']['collected_type_choices']
-            provider.primary_collection.status_choices = primary_collection['fields']['status_choices']
-            provider.primary_collection.issue_choices = primary_collection['fields']['issue_choices']
-            provider.primary_collection.volume_choices = primary_collection['fields']['volume_choices']
-            provider.primary_collection.program_area_choices = primary_collection['fields']['program_area_choices']
-            provider.primary_collection.save()
-        if licenses:
-            provider.licenses_acceptable.set(licenses)
-        if default_license:
-            provider.default_license = NodeLicense.objects.get(license_id=default_license)
-        return provider
+    provider_class = CollectionProvider
