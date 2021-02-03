@@ -64,7 +64,34 @@ var ViewModel = function(list) {
             }
         });
     };
+
+    self.resubscribeToGeneral = function () {
+        var payload = {};
+
+        for (var i in self.list){
+            payload[self.list[i]] = $.inArray(self.list[i], self.subscribed()) !== -1;
+        }
+        payload['Open Science Framework General'] = true;
+        var request = $osf.postJSON('/api/v1/settings/notifications/?signup_form=', payload);
+        request.done(function (response) {
+            for (var key in response.result){
+                if (response.result[key]){
+                    self.subscribed.push(key);
+                }
+            }
+            self.changeMessage('Settings updated.', 'text-success', 5000);
+        });
+        request.fail(function (xhr) {
+            if (xhr.responseJSON.error_type !== 'not_subscribed') {
+                var message = 'Could not update email preferences at this time. If this issue persists, ' +
+                    'please report it to ' + $osf.osfSupportLink() + '.';
+                self.changeMessage(message, 'text-danger', 5000);
+            }
+        });
+        $('#mc-embedded-subscribe').click();
+    };
 };
+
 
 // API
 function NotificationsViewModel(selector, list) {
