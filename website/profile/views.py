@@ -502,7 +502,7 @@ def user_choose_mailing_lists(auth, **kwargs):
             if list_name == settings.OSF_HELP_LIST:
                 update_osf_help_mails_subscription(user=user, subscribe=subscribe)
             else:
-                if  subscribe and 'signup_form=' in request.url:
+                if subscribe and 'signup_form=' in request.url:
                     # To resubscribe to this mailing list the user must click a sign-up form link.
                     user.mailchimp_mailing_lists[settings.MAILCHIMP_GENERAL_LIST] = True
                 else:
