@@ -310,7 +310,7 @@ class AbstractNode(DirtyFieldsMixin, TypedModel, AddonModelMixin, IdentifierMixi
     # TODO: Can this be a reference instead of data?
     child_node_subscriptions = DateTimeAwareJSONField(default=dict, blank=True)
     _contributors = models.ManyToManyField(OSFUser,
-                                           through=Contributor,
+                                           through='osf.Contributor',
                                            related_name='nodes')
 
     creator = models.ForeignKey(OSFUser,

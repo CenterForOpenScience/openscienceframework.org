@@ -63,7 +63,7 @@ requests-oauthlib==0.8.0
 raven==6.4.0
 
 # API requirements
-Django==2.2.0
+Django==2.2.6
 djangorestframework==3.8.2
 django-cors-headers==2.1.0
 djangorestframework-bulk==0.2.1
@@ -75,7 +75,7 @@ django-celery-results==1.0.1
 pycparser==2.18
 pyjwe==1.0.0
 jsonschema==2.6.0
-django-guardian==1.4.9
+django-guardian==2.3.0
 
 # Admin requirements
 django-webpack-loader==0.5.0

@@ -81,27 +81,12 @@ def update_admin_permissions(verbosity=0):
     admin_group, created = Group.objects.get_or_create(name='osf_admin')
     if created and should_log:
         logger.info('admin_user Group created')
-    [admin_group.permissions.add(perm) for perm in get_admin_read_permissions()]
+    # [admin_group.permissions.add(perm) for perm in get_admin_read_permissions()]
     [admin_group.permissions.add(perm) for perm in get_admin_write_permissions()]
     group.save()
     if should_log:
         logger.info('Administrator permissions added to admin group')
 
-    # Add a metrics_only Group and permissions
-    metrics_group, created = Group.objects.get_or_create(name='metrics_only')
-    if created and should_log:
-        logger.info('Metrics only group created')
-    metrics_permission = Permission.objects.get(codename='view_metrics')
-    metrics_group.permissions.add(metrics_permission)
-    metrics_group.save()
-
-    # Add a view_prereg Group and permissions
-    prereg_view_group, created = Group.objects.get_or_create(name='prereg_view')
-    if created and should_log:
-        logger.info('Prereg view group created')
-    prereg_view_permission = Permission.objects.get(codename='view_prereg')
-    prereg_view_group.permissions.add(prereg_view_permission)
-    prereg_view_group.save()
 
 
 def update_provider_auth_groups(verbosity=0):
