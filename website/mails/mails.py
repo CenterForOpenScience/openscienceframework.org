@@ -77,7 +77,7 @@ def render_message(tpl_name, **context):
 
 
 def send_mail(
-        to_addr, mail, mimetype='html', from_addr=None, mailer=None, celery=True,
+        to_addr, mail, from_addr=None, mailer=None, celery=True,
         username=None, password=None, callback=None, attachment_name=None,
         attachment_content=None, **context):
     """Send an email from the OSF.
@@ -113,7 +113,6 @@ def send_mail(
         to_addr=to_addr,
         subject=subject,
         message=message,
-        mimetype=mimetype,
         ttls=ttls,
         login=login,
         username=username,
@@ -216,17 +215,17 @@ INVITE_DEFAULT = Mail(
     'invite_default',
     subject='You have been added as a contributor to an OSF project.'
 )
-INVITE_PREPRINT = lambda template, provider: Mail(
-    'invite_preprints_{}'.format(template),
+INVITE_PREPRINT = lambda provider: Mail(
+    'invite_preprints',
     subject='You have been added as a contributor to {} {} {}.'.format(get_english_article(provider.name), provider.name, provider.preprint_word)
 )
 CONTRIBUTOR_ADDED_DEFAULT = Mail(
     'contributor_added_default',
     subject='You have been added as a contributor to an OSF project.'
 )
-CONTRIBUTOR_ADDED_PREPRINT = lambda template, provider: Mail(
-    'contributor_added_preprints_{}'.format(template),
-    subject='You have been added as a contributor to {} {} {}.'.format(get_english_article(provider.name), provider.name, provider.preprint_word)
+CONTRIBUTOR_ADDED_PREPRINT = lambda provider: Mail(
+    'contributor_added_preprints',
+    subject=f'You have been added as a contributor to {get_english_article(provider.name)} {provider.name} {provider.preprint_word}.'
 )
 CONTRIBUTOR_ADDED_PREPRINT_NODE_FROM_OSF = Mail(
     'contributor_added_preprint_node_from_osf',
@@ -248,6 +247,7 @@ FORWARD_INVITE = Mail('forward_invite', subject='Please forward to ${fullname}')
 FORWARD_INVITE_REGISTERED = Mail('forward_invite_registered', subject='Please forward to ${fullname}')
 
 FORGOT_PASSWORD = Mail('forgot_password', subject='Reset Password')
+FORGOT_PASSWORD_INSTITUTION = Mail('forgot_password_institution', subject='Set Password')
 PASSWORD_RESET = Mail('password_reset', subject='Your OSF password has been reset')
 PENDING_VERIFICATION = Mail('pending_invite', subject='Your account is almost ready!')
 PENDING_VERIFICATION_REGISTERED = Mail('pending_registered', subject='Received request to be a contributor')
@@ -258,6 +258,10 @@ REQUEST_DEACTIVATION = Mail('support_request', subject='[via OSF] Deactivation R
 REQUEST_DEACTIVATION_COMPLETE = Mail('request_deactivation_complete', subject='[via OSF] OSF account deactivated')
 
 SPAM_USER_BANNED = Mail('spam_user_banned', subject='[OSF] Account flagged as spam')
+SPAM_FILES_DETECTED = Mail(
+    'spam_files_detected',
+    subject='[auto] Spam files audit'
+)
 
 CONFERENCE_SUBMITTED = Mail(
     'conference_submitted',
