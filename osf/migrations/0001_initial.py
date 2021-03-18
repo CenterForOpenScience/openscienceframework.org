@@ -30,8 +30,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('addons_osfstorage', '0001_initial'),
-        ('auth', '0011_update_proxy_permissions'),
-        ('admin', '0003_logentry_add_action_flag_choices'),
         ('contenttypes', '0002_remove_content_type_name'),
     ]
 
@@ -698,20 +696,6 @@ class Migration(migrations.Migration):
                 'abstract': False,
             },
             bases=(models.Model, osf.models.base.QuerySetExplainMixin),
-        ),
-        migrations.CreateModel(
-            name='AdminLogEntry',
-            fields=[
-            ],
-            options={
-                'proxy': True,
-                'indexes': [],
-                'constraints': [],
-            },
-            bases=('admin.logentry',),
-            managers=[
-                ('objects', osf.models.admin_log_entry.AdminLogEntryManager()),
-            ],
         ),
         migrations.CreateModel(
             name='Tag',
@@ -1597,11 +1581,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='osfuser',
-            name='groups',
-            field=models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.Group', verbose_name='groups'),
-        ),
-        migrations.AddField(
-            model_name='osfuser',
             name='merged_by',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='merger', to=settings.AUTH_USER_MODEL),
         ),
@@ -1614,11 +1593,6 @@ class Migration(migrations.Migration):
             model_name='osfuser',
             name='tags',
             field=models.ManyToManyField(blank=True, to='osf.Tag'),
-        ),
-        migrations.AddField(
-            model_name='osfuser',
-            name='user_permissions',
-            field=models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.Permission', verbose_name='user permissions'),
         ),
         migrations.CreateModel(
             name='BitbucketFileNode',
@@ -1888,88 +1862,10 @@ class Migration(migrations.Migration):
             },
             bases=(models.Model, osf.models.base.QuerySetExplainMixin),
         ),
-        migrations.CreateModel(
-            name='PreprintUserObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.Preprint')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
-            },
-        ),
-        migrations.CreateModel(
-            name='PreprintGroupObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.Preprint')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
-            },
-        ),
         migrations.AddField(
             model_name='preprint',
             name='provider',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='preprints', to='osf.PreprintProvider'),
-        ),
-        migrations.CreateModel(
-            name='OSFGroupUserObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.OSFGroup')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
-            },
-        ),
-        migrations.CreateModel(
-            name='OSFGroupGroupObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.OSFGroup')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
-            },
-        ),
-        migrations.CreateModel(
-            name='NodeUserObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.AbstractNode')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
-            },
-        ),
-        migrations.CreateModel(
-            name='NodeGroupObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.AbstractNode')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
-            },
         ),
         migrations.CreateModel(
             name='MailRecord',
@@ -2010,37 +1906,6 @@ class Migration(migrations.Migration):
             name='embargoed_registration',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='osf.Registration'),
         ),
-        migrations.CreateModel(
-            name='DraftRegistrationUserObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.DraftRegistration')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
-            },
-        ),
-        migrations.CreateModel(
-            name='DraftRegistrationGroupObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.DraftRegistration')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
-            },
-        ),
-        migrations.AddField(
-            model_name='draftregistration',
-            name='provider',
-            field=models.ForeignKey(default=osf.models.registrations.get_default_id, on_delete=django.db.models.deletion.CASCADE, related_name='draft_registrations', to='osf.RegistrationProvider'),
-        ),
         migrations.AddField(
             model_name='draftregistration',
             name='registered_node',
@@ -2062,32 +1927,6 @@ class Migration(migrations.Migration):
                 'unique_together': {('_id', 'location')},
             },
             bases=(models.Model, osf.models.base.QuerySetExplainMixin),
-        ),
-        migrations.CreateModel(
-            name='CollectionUserObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.Collection')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
-            },
-        ),
-        migrations.CreateModel(
-            name='CollectionGroupObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.Collection')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
-            },
         ),
         migrations.CreateModel(
             name='ChronosSubmission',
@@ -2132,32 +1971,6 @@ class Migration(migrations.Migration):
                 'abstract': False,
             },
             bases=(models.Model, osf.models.base.QuerySetExplainMixin),
-        ),
-        migrations.CreateModel(
-            name='AbstractProviderUserObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.AbstractProvider')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('user', 'permission', 'content_object')},
-            },
-        ),
-        migrations.CreateModel(
-            name='AbstractProviderGroupObjectPermission',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf.AbstractProvider')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Group')),
-                ('permission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='auth.Permission')),
-            ],
-            options={
-                'abstract': False,
-                'unique_together': {('group', 'permission', 'content_object')},
-            },
         ),
         migrations.AlterUniqueTogether(
             name='abstractprovider',

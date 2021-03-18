@@ -3,6 +3,12 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
+from addons.osfstorage.settings import DEFAULT_REGION_ID
+from addons.osfstorage.models import Region
+
+
+def add_default_region(state, schema):
+    Region(_id=DEFAULT_REGION_ID).save()
 
 
 class Migration(migrations.Migration):
@@ -36,4 +42,5 @@ class Migration(migrations.Migration):
             name='user_settings',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='addons_zotero.UserSettings'),
         ),
+        migrations.RunPython(add_default_region, migrations.RunPython.noop)
     ]
