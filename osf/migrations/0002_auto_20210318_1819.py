@@ -13,6 +13,12 @@ def add_default_provider(state, schema):
     RegistrationProvider(_id='osf').save()
 
 
+def add_registration_schemas(state, schema):
+    from django.apps import apps
+    RegistrationSchema = apps.get_model('osf.RegistrationSchema')
+    RegistrationSchema(name='Open-Ended Registration', schema_version=2).save()
+
+
 
 class Migration(migrations.Migration):
 
@@ -211,5 +217,6 @@ class Migration(migrations.Migration):
                                     on_delete=django.db.models.deletion.CASCADE, related_name='draft_registrations',
                                     to='osf.RegistrationProvider'),
         ),
+        migrations.RunPython(add_registration_schemas, migrations.RunPython.noop),
 
     ]
