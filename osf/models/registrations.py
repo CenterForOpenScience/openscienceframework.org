@@ -685,11 +685,6 @@ class Registration(AbstractNode):
         else:
             raise NodeStateError('Cannot remove tags of withdrawn registrations.')
 
-    class Meta:
-        # custom permissions for use in the OSF Admin App
-        permissions = (
-            ('view_registration', 'Can view registration details'),
-        )
 
 class DraftRegistrationLog(ObjectIDMixin, BaseModel):
     """ Simple log to show status changes for DraftRegistrations
@@ -744,7 +739,7 @@ class DraftRegistrationLog(ObjectIDMixin, BaseModel):
 def get_default_id():
     from django.apps import apps
     RegistrationProvider = apps.get_model('osf', 'RegistrationProvider')
-    return RegistrationProvider.get_default().id
+    return RegistrationProvider.objects.filter(_id=RegistrationProvider.default__id).values('id').get()['id']
 
 
 class DraftRegistration(ObjectIDMixin, RegistrationResponseMixin, DirtyFieldsMixin,

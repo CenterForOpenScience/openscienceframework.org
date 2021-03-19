@@ -184,12 +184,6 @@ class AbstractProvider(TypedModel, TypedObjectIDMixin, ReviewProviderMixin, Dirt
 
 class CollectionProvider(AbstractProvider):
 
-    class Meta:
-        permissions = (
-            # custom permissions for use in the OSF Admin App
-            ('view_collectionprovider', 'Can view collection provider details'),
-        )
-
     @property
     def readable_type(self):
         return 'collection'
@@ -223,11 +217,6 @@ class RegistrationProvider(AbstractProvider):
         self._meta.get_field('share_publish_type').default = 'Registration'
         super().__init__(*args, **kwargs)
 
-    class Meta:
-        permissions = (
-            # custom permissions for use in the OSF Admin App
-            ('view_registrationprovider', 'Can view registration provider details'),
-        )
 
     @property
     def readable_type(self):
@@ -269,11 +258,6 @@ class PreprintProvider(AbstractProvider):
     preprint_word = models.CharField(max_length=10, choices=PREPRINT_WORD_CHOICES, default='preprint')
     subjects_acceptable = DateTimeAwareJSONField(blank=True, default=list)
 
-    class Meta:
-        permissions = (
-            # custom permissions for use in the OSF Admin App
-            ('view_preprintprovider', 'Can view preprint provider details'),
-        )
 
     @property
     def readable_type(self):
