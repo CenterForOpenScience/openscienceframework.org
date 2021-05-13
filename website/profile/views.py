@@ -478,7 +478,8 @@ def user_choose_addons(**kwargs):
 
 @must_be_logged_in
 def user_choose_mailing_lists(auth, **kwargs):
-    """ Update mailing list subscription on user model and in mailchimp
+    """ Update mailing list subscription on user model and in mailchimp, we can't resubscribe people to mailchimp mailing
+        lists via the API so we will send them to an external signup form while we update our records.
 
         Example input:
         {
@@ -495,7 +496,11 @@ def user_choose_mailing_lists(auth, **kwargs):
             if list_name == settings.OSF_HELP_LIST:
                 update_osf_help_mails_subscription(user=user, subscribe=subscribe)
             else:
-                update_mailchimp_subscription(user, list_name, subscribe)
+                if subscribe and 'signup_form=' in request.url:
+                    # To resubscribe to this mailing list the user must click a sign-up form link.
+                    user.mailchimp_mailing_lists[settings.MAILCHIMP_GENERAL_LIST] = True
+                else:
+                    update_mailchimp_subscription(user, list_name, subscribe)
     else:
         raise HTTPError(http_status.HTTP_400_BAD_REQUEST, data=dict(
             message_long="Must provide a dictionary of the format {'mailing list name': Boolean}")
