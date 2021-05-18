@@ -143,7 +143,6 @@ var resolve = {
         'jquery-qrcode': staticPath('vendor/bower_components/jquery-qrcode/jquery.qrcode.min.js'),
         'jquery-tagsinput': staticPath('vendor/bower_components/jquery.tagsinput/jquery.tagsinput.js'),
         'clipboard': staticPath('vendor/bower_components/clipboard/dist/clipboard.js'),
-        'history': nodePath('historyjs/scripts/bundled/html4+html5/jquery.history.js'),
         // Needed for knockout-sortable
         'jquery.ui.sortable': staticPath('vendor/bower_components/jquery-ui/ui/widgets/sortable.js'),
         'truncate': staticPath('vendor/bower_components/truncate/jquery.truncate.js'),
@@ -178,7 +177,7 @@ var externals = {
 
 var plugins = [
     // Bundle common code between modules
-    new webpack.optimize.CommonsChunkPlugin({ name: 'vendor', filename: 'vendor.js' }),
+//    new webpack.optimize.CommonsChunkPlugin({ name: 'vendor', filename: 'vendor.js' }),
     // Make jQuery available in all modules without having to do require('jquery')
     new webpack.ProvidePlugin({
         $: 'jquery',
@@ -190,6 +189,19 @@ var plugins = [
         '__ENABLE_DEV_MODE_CONTROLS': fs.existsSync(staticPath(path.join('built', 'git_logs.json')))
     }),
 ];
+
+var optimization = {
+	splitChunks: {
+		cacheGroups: {
+			vendor: {
+				test: /node_modules/,
+				chunks: 'initial',
+				name: 'vendor',
+				enforce: true
+			},
+		}
+	}
+};
 
 var output = {
     path: path.resolve(__dirname, 'website', 'static', 'public', 'js'),
