@@ -2,7 +2,13 @@ from rest_framework import generics, permissions as drf_permissions
 from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
 from framework.auth.oauth_scopes import CoreScopes
 
-from osf.models import AbstractNode, Registration, OSFUser, RegistrationProvider
+from osf.models import (
+    AbstractNode,
+    Registration,
+    OSFUser,
+    RegistrationProvider,
+    SchemaResponses,
+)
 from osf.utils.permissions import WRITE_NODE
 from api.base import permissions as base_permissions
 from api.base import generic_bulk_views as bulk_views
@@ -69,11 +75,12 @@ from api.wikis.serializers import RegistrationWikiSerializer
 from api.base.utils import get_object_or_error
 from api.actions.serializers import RegistrationActionSerializer
 from api.requests.serializers import RegistrationRequestSerializer
+from api.schema_responses.serializers import SchemaResponsesListSerializer, SchemaResponsesDetailSerializer
 from framework.sentry import log_exception
 from osf.utils.permissions import ADMIN
 from api.providers.permissions import MustBeModerator
 from api.providers.views import ProviderMixin
-
+from api.nodes.permissions import AdminContributorOrPublic
 
 class RegistrationMixin(NodeMixin):
     """Mixin with convenience methods for retrieving the current registration based on the
@@ -850,3 +857,44 @@ class RegistrationRequestList(JSONAPIBaseView, ListFilterMixin, generics.ListCre
 
     def get_queryset(self):
         return self.get_queryset_from_request()
+
+
+class RegistrationSchemaResponsesList(JSONAPIBaseView, ListFilterMixin, generics.ListCreateAPIView, RegistrationMixin):
+    required_read_scopes = [CoreScopes.NULL]
+    required_write_scopes = [CoreScopes.NULL]
+
+    permission_classes = (
+        drf_permissions.IsAuthenticated,
+        base_permissions.TokenHasScope,
+        AdminContributorOrPublic,
+    )
+
+    view_category = 'registrations'
+    view_name = 'schema-responses-list'
+
+    serializer_class = SchemaResponsesListSerializer
+
+    def get_default_queryset(self):
+        return self.get_node().schema_responses.filter(deleted__isnull=True)
+
+    def get_queryset(self):
+        return self.get_queryset_from_request()
+
+
+class RegistrationSchemaResponsesDetail(JSONAPIBaseView, generics.RetrieveUpdateDestroyAPIView):
+    required_read_scopes = [CoreScopes.NULL]
+    required_write_scopes = [CoreScopes.NULL]
+
+    permission_classes = (
+        drf_permissions.IsAuthenticated,
+        base_permissions.TokenHasScope,
+        AdminContributorOrPublic,
+    )
+
+    view_category = 'registrations'
+    view_name = 'schema-responses-detail'
+
+    serializer_class = SchemaResponsesDetailSerializer
+
+    def get_object(self):
+        return SchemaResponses.objects.get(guids___id=self.kwargs['responses_id'])

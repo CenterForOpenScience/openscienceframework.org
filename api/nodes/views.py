@@ -115,6 +115,8 @@ from api.nodes.serializers import (
     NodeGroupsCreateSerializer,
     NodeGroupsDetailSerializer,
 )
+from api.schema_responses.serializers import SchemaResponsesListSerializer
+
 from api.nodes.utils import NodeOptimizationMixin, enforce_no_children
 from api.osf_groups.views import OSFGroupMixin
 from api.preprints.serializers import PreprintSerializer
@@ -2265,3 +2267,25 @@ class NodeSettings(JSONAPIBaseView, generics.RetrieveUpdateAPIView, NodeMixin):
         context['wiki_addon'] = node.get_addon('wiki')
         context['forward_addon'] = node.get_addon('forward')
         return context
+
+
+class NodeSchemaResponseList(JSONAPIBaseView, ListFilterMixin, generics.ListCreateAPIView, NodeMixin):
+    required_read_scopes = [CoreScopes.NULL]
+    required_write_scopes = [CoreScopes.NULL]
+
+    permission_classes = (
+        drf_permissions.IsAuthenticated,
+        base_permissions.TokenHasScope,
+        AdminContributorOrPublic,
+    )
+
+    view_category = 'nodes'
+    view_name = 'schema-responses-list'
+
+    serializer_class = SchemaResponsesListSerializer
+
+    def get_default_queryset(self):
+        return self.get_node().schema_responses.filter(deleted__isnull=True)
+
+    def get_queryset(self):
+        return self.get_queryset_from_request()
