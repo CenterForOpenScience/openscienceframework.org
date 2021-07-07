@@ -27,12 +27,10 @@ from osf_tests.factories import (
     SubjectFactory,
     InstitutionFactory,
 )
-from osf_tests.management_commands.test_migration_registration_responses import prereg_registration_responses
 from rest_framework import exceptions
 from tests.base import ApiTestCase
 from website import settings
 from website.views import find_bookmark_collection
-from website.project.metadata.schemas import from_json
 from osf.utils import permissions
 
 SCHEMA_VERSION = 2
@@ -913,16 +911,13 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
         assert res.status_code == 400
         assert res.json['errors'][0]['detail'] == 'This draft registration is not created from the given node.'
 
-    @pytest.mark.skip('TEMPORARY: Unskip when JSON Schemas are updated')
     @mock.patch('framework.celery_tasks.handlers.enqueue_task')
     def test_required_top_level_questions_must_be_answered_on_draft(
             self, mock_enqueue, app, user, project_public,
             metadata, url_registrations):
 
-        test_schema = from_json('prereg-prize.json')
         schema = RegistrationSchema.objects.get(
-            name='Test Schema',
-            schema=test_schema,
+            name='OSF Preregistration',
             schema_version=SCHEMA_VERSION
         )
 
@@ -955,15 +950,12 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
         assert res.status_code == 400
         assert res.json['errors'][0]['detail'] == 'For your registration the \'Title\' field is required'
 
-    @pytest.mark.skip('TEMPORARY: Unskip when JSON Schemas are updated')
     @mock.patch('framework.celery_tasks.handlers.enqueue_task')
     def test_required_second_level_questions_must_be_answered_on_draft(
             self, mock_enqueue, app, user, project_public, metadata, url_registrations):
 
-        test_schema = from_json('prereg-prize.json')
         schema = RegistrationSchema.objects.get(
-            name='Test Schema',
-            schema=test_schema,
+            name='OSF Preregistration',
             schema_version=SCHEMA_VERSION
         )
 
@@ -974,7 +966,7 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
         )
 
         registration_metadata = metadata(draft_registration)
-        registration_metadata['q11'] = {'value': {}}
+        registration_metadata['q17'] = {'value': {}}
         draft_registration.registration_metadata = registration_metadata
         draft_registration.save()
 
@@ -993,17 +985,14 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
             auth=user.auth,
             expect_errors=True)
         assert res.status_code == 400
-        assert res.json['errors'][0]['detail'] == 'For your registration your response to the \'Manipulated variables\' field is invalid.'
+        assert res.json['errors'][0]['detail'] == 'For your registration your response to the \'Measured variables\' field is invalid.'
 
-    @pytest.mark.skip('TEMPORARY: Unskip when JSON Schemas are updated')
     @mock.patch('framework.celery_tasks.handlers.enqueue_task')
     def test_required_third_level_questions_must_be_answered_on_draft(
             self, mock_enqueue, app, user, project_public, metadata, url_registrations):
 
-        test_schema = from_json('prereg-prize.json')
         schema = RegistrationSchema.objects.get(
-            name='Test Schema',
-            schema=test_schema,
+            name='OSF Preregistration',
             schema_version=SCHEMA_VERSION
         )
 
@@ -1014,7 +1003,7 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
         )
 
         registration_metadata = metadata(draft_registration)
-        registration_metadata['q11'] = {'value': {'question': {}}}
+        registration_metadata['q17'] = {'value': {'question': {}}}
 
         draft_registration.registration_metadata = registration_metadata
         draft_registration.save()
@@ -1034,9 +1023,9 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
             auth=user.auth,
             expect_errors=True)
         assert res.status_code == 400
-        assert res.json['errors'][0]['detail'] == 'For your registration your response to the \'Manipulated variables\' field is invalid.'
+        assert res.json['errors'][0]['detail'] == 'For your registration your response to the \'Measured variables\' field is invalid.'
 
-    @pytest.mark.skip('TEMPORARY: Unskip when JSON Schemas are updated')
+    # @pytest.mark.skip('TEMPORARY: Unskip when JSON Schemas are updated')
     @mock.patch('framework.celery_tasks.handlers.enqueue_task')
     def test_multiple_choice_in_registration_schema_must_match_one_of_choices(
             self, mock_enqueue, app, user, project_public, schema, payload, url_registrations):
@@ -1418,47 +1407,40 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
         version.metadata['sha256'] = sha256
         version.save()
 
-        prereg_schema = RegistrationSchema.objects.get(
-            name='Prereg Challenge',
-            schema_version=SCHEMA_VERSION)
+        open_ended_schema = RegistrationSchema.objects.get(
+            name='Open-Ended Registration',
+            schema_version=3)
 
-        prereg_draft_registration = DraftRegistrationFactory(
+        open_ended_draft_registration = DraftRegistrationFactory(
             initiator=user,
-            registration_schema=prereg_schema,
+            registration_schema=open_ended_schema,
             branched_from=project_public
         )
 
-        prereg_registration_responses['q11.uploader'] = []
+        registration_responses = {
+            'summary': 'Test Summary'
+        }
 
-        # q7 has file information
-        prereg_draft_registration.update_registration_responses(prereg_registration_responses)
-        prereg_draft_registration.save()
+        open_ended_draft_registration.update_registration_responses(registration_responses)
+        open_ended_draft_registration.save()
 
-        prereg_draft_registration.save()
+        open_ended_draft_registration.save()
 
         payload = {
             'data': {
                 'type': 'registrations',
                 'attributes': {
-                    'draft_registration': prereg_draft_registration._id,
+                    'draft_registration': open_ended_draft_registration._id,
                     'registration_choice': 'immediate',
                 }
             }
         }
 
-        res = app.post_json_api(
-            url_registrations,
-            payload,
-            auth=user.auth,
-            expect_errors=True)
-        # File with the given name in the payload doesn't exist on the node
-        assert res.status_code == 400
-
         file_view_url = urljoin(settings.DOMAIN, '/project/{}/files/osfstorage/{}'.format(
-            prereg_draft_registration.branched_from._id,
+            open_ended_draft_registration.branched_from._id,
             file._id,
         ))
-        prereg_registration_responses['q7.uploader'] = [{
+        registration_responses['uploader'] = [{
             'file_name': file_name,
             'file_id': file._id,
             'file_hashes': {
@@ -1469,8 +1451,8 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
             },
         }]
 
-        prereg_draft_registration.update_registration_responses(prereg_registration_responses)
-        prereg_draft_registration.save()
+        open_ended_draft_registration.update_registration_responses(registration_responses)
+        open_ended_draft_registration.save()
         res = app.post_json_api(
             url_registrations,
             payload,
@@ -1479,7 +1461,7 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
         # sha256 is inaccurate
         assert res.status_code == 400
 
-        prereg_registration_responses['q7.uploader'] = [{
+        registration_responses['uploader'] = [{
             'file_name': file_name,
             'file_id': file._id,
             'file_hashes': {
@@ -1490,8 +1472,8 @@ class TestNodeRegistrationCreate(DraftRegistrationTestCase):
             },
         }]
 
-        prereg_draft_registration.update_registration_responses(prereg_registration_responses)
-        prereg_draft_registration.save()
+        open_ended_draft_registration.update_registration_responses(registration_responses)
+        open_ended_draft_registration.save()
         res = app.post_json_api(
             url_registrations,
             payload,
