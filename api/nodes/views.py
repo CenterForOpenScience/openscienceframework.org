@@ -26,7 +26,7 @@ from api.base.exceptions import (
     PermanentlyMovedError,
 )
 from api.base.filters import ListFilterMixin, PreprintFilterMixin
-from api.base.pagination import CommentPagination, NodeContributorPagination, MaxSizePagination
+from api.base.pagination import CommentPagination, CursorPagination, NodeContributorPagination, MaxSizePagination
 from api.base.parsers import (
     JSONAPIRelationshipParser,
     JSONAPIRelationshipParserForRegularJSON,
@@ -1522,6 +1522,7 @@ class NodeLogList(JSONAPIBaseView, generics.ListAPIView, NodeMixin, ListFilterMi
     """The documentation for this endpoint can be found [here](https://developer.osf.io/#operation/nodes_logs_list).
     """
 
+    pagination_class = CursorPagination
     serializer_class = NodeLogSerializer
     view_category = 'nodes'
     view_name = 'node-logs'
